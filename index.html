@@ -41,6 +41,7 @@ button{cursor:pointer}
 #pv.on{display:block}
 #pv img{width:100%;max-width:none;display:block}
 #pvx{position:fixed;top:8px;right:8px;z-index:61;min-height:44px;padding:0 14px;font-size:16px}
+.avv{display:block;color:#b00;font-weight:600;font-size:12px}
 .spm{position:absolute;top:28px;right:8px;font-size:12px;transform:rotate(-20deg);font-weight:600}
 .qta{font-weight:700}
 .sis{border:1px solid #888;border-radius:6px;padding:0 5px;font-size:12px}
@@ -101,7 +102,7 @@ button{cursor:pointer}
 
 <script>
 "use strict";
-const VERSIONE='v07';
+const VERSIONE='v08';
 /* Nomi dei modelli: R1 Rilievo, E1 Esecutivo, M1 Monoblocco, T1 Controtelai, C1 Collaudo */
 const MODELLI=[['ril','R1 Rilievo'],['esec','E1 Esecutivo'],['mono','M1 Monoblocco'],['ctel','T1 Controtelai'],['coll','C1 Collaudo']];
 const LS='rilievi_corrado_v2';
@@ -196,7 +197,7 @@ function cellBody(p){
   else if(m==='ctel')mid=(p.ctel.L!==undefined||p.ctel.H!==undefined?'<div class="m" style="font-size:16px">'+fmt(p.ctel.L)+' x '+fmt(p.ctel.H)+'</div>':'')+mis(p.ctel,MIS_CTEL.slice(2))+diffHtml(p,true);
   else if(m==='coll'){const c=p.coll;mid='<div class="dw">'+svgTipo(p.disegno,60,70)+'</div>'+(p.esec.L!==undefined?'<div class="m">'+alS(p.ale.sx)+' + '+fmt(p.esec.L)+' + '+alS(p.ale.dx)+'</div>':'')+(c.esito?'<div style="text-align:center"><b>'+esc(c.esito)+'</b></div>':'')+(c.L!==undefined||c.H!==undefined?'<div class="m">rilevato '+fmt(c.L)+' x '+fmt(c.H)+'</div>':'')+(c.mod?'<div class="nt">'+esc(c.mod)+'</div>':'')}
   return chkHtml(p)+'<div class="top"><span>'+(p.sistema?esc(p.sistema):'&nbsp;')+'</span><b>'+(p.apertura?esc(p.apertura):'')+'</b></div>'+(p.note&&m!=='coll'?'<div class="nt">'+esc(p.note)+'</div>':'')+mid+
-    '<div class="pos"><b>'+esc(p.id)+'</b>'+(p.stanza?'<span class="stz">'+esc(p.stanza)+'</span>':' ')+(p.qta?' <span class="qta">N° '+esc(p.qta)+'</span>':'')+(p.etichetta?' <span class="etich">'+esc(p.etichetta)+'</span>':'')+((p.verifica&&p.verifica.length&&!p.vOk)?' <b style="color:#b00">?</b>':'')+'</div>';
+    '<div class="pos"><b>'+esc(p.id)+'</b>'+(p.stanza?'<span class="stz">'+esc(p.stanza)+'</span>':' ')+(p.qta?' <span class="qta">N° '+esc(p.qta)+'</span>':'')+(p.etichetta?' <span class="etich">'+esc(p.etichetta)+'</span>':'')+((p.verifica&&p.verifica.length&&!p.vOk)?' <b style="color:#b00">?</b>':'')+(avvisiPos(p).length?' <b style="color:#b00" title="misura fuori limite">!</b>':'')+'</div>';
 }
 function traspS(c){const t=T(c),r=[];if(t.piano)r.push('Piano '+t.piano);if(t.mezzi.length)r.push('Scarico: '+t.mezzi.join(', '));if(t.gru)r.push('Gru: '+t.gru);if(t.diff)r.push('Difficoltà: '+t.diff);if(t.note)r.push(t.note);return r.join(' | ')}
 function renderWrap(){
@@ -231,7 +232,7 @@ function diffHtml(p,breve){
 
 /* ---------- editor posizione ---------- */
 let EI=-1;
-function mi(p,path,label){const v=getp(p,path);return '<label class="f">'+label+'<input class="mi" data-p="'+path+'" inputmode="decimal" autocomplete="off" value="'+esc(fmt(v))+'">'+(p.prev[path]!==undefined?'<small>prima: <s>'+fmt(p.prev[path])+'</s></small>':'')+'</label>'}
+function mi(p,path,label){const v=getp(p,path);return '<label class="f">'+label+'<input class="mi" data-p="'+path+'" inputmode="decimal" autocomplete="off" value="'+esc(fmt(v))+'">'+(p.prev[path]!==undefined?'<small>prima: <s>'+fmt(p.prev[path])+'</s></small>':'')+(MISURA.test(path)?'<small class="avv" data-avv="'+path+'"></small>':'')+'</label>'}
 function alBtn(p,lato,label){const a=p.ale[lato]||{t:''};const cls=a.t===''?'':a.t==='0'?' v0':a.t==='AL'?' v1':' v2';
   const conN=a.t==='ALn'||a.t==='N';
   return '<div class="f" style="min-width:110px;flex:0 0 auto">'+label+'<button class="al'+cls+'" data-al="'+lato+'">'+alS(a)+'</button>'+(conN?'<input class="mi" data-aln="'+lato+'" inputmode="decimal" placeholder="mm" value="'+esc(fmt(a.n))+'" style="margin-top:4px;font-size:16px;min-height:40px">':'')+'</div>'}
@@ -290,6 +291,19 @@ function openNuova(){
   ed.innerHTML=h;ed.scrollTop=0;document.getElementById('foot').innerHTML='<button id="eOk">Annulla</button>';document.getElementById('ov').classList.add('on');
 }
 /* ---------- file nell'app (piantine): restano sul tablet anche senza rete e senza Drive ---------- */
+/* ---------- limiti delle misure (decisi da Corrado il 14/11/2026): avvisi, non bloccano ----------
+   altezza max 4000; larghezza: scorrevoli fino a 13000, battenti (solo ante apribili) max 2500, fissi e strutture composte con fisso senza limite;
+   battuta frontale BF max 90; battuta laterale BL max 180 negli scorrevoli e 90 nei battenti. Per cambiarli basta cambiare questi numeri. */
+const LIMITI={H:4000,Lscorr:13000,Lbatt:2500,BF:90,BLscorr:180,BLbatt:90};
+function limitiPos(p){const ps=String(p.disegno||'').split('|'),scorr=ps.some(x=>x==='SR'||x==='SL'),fisso=ps.some(x=>x==='F'),apr=ps.some(x=>x==='<'||x==='>');
+  return {H:LIMITI.H,L:scorr?LIMITI.Lscorr:(apr&&!fisso?LIMITI.Lbatt:null),BF:LIMITI.BF,BL:scorr?LIMITI.BLscorr:LIMITI.BLbatt}}
+function avvisiPos(p){const out=[],lim=limitiPos(p);
+  ['ril','esec'].forEach(pf=>{const o=p[pf]||{};
+    [['BF','BF'],['BL','BL'],['L','L'],['LST','L'],['Lmax','L'],['H','H'],['HST','H'],['Hmax','H']].forEach(k=>{const v=o[k[0]],m=lim[k[1]];if(v!==undefined&&v!==null&&m!=null&&v>m)out.push({path:pf+'.'+k[0],campo:k[0],valore:v,max:m})})});
+  return out}
+function aggiornaAvvisi(){if(EI<0)return;const p=C().pos[EI];if(!p)return;const av=avvisiPos(p);
+  document.querySelectorAll('[data-avv]').forEach(e=>{const a=av.find(x=>x.path===e.dataset.avv);e.textContent=a?'Attenzione: oltre il massimo previsto ('+fmt(a.max)+' mm). Controlla.':''})}
+function avvisiTutti(c){const r=[];c.pos.forEach(p=>avvisiPos(p).forEach(a=>r.push(p.id+' '+a.campo+' '+fmt(a.valore)+' (max '+fmt(a.max)+')')));return r}
 /* ponte con Drive (Rilievi API): elenco cantieri, scarico con un tocco, invio del rilievo. Il codice di accesso si scrive una volta sola e resta nel tablet. */
 const API='https://script.google.com/macros/s/AKfycbzgAUSt_weMxwcx3vXC2iTHWvmoWaTn7-Q2HO3vzYiXxUZttYjKYTyFvD8Ec56LCum1bQ/exec';
 const codice=()=>{try{return localStorage.getItem('rilievi_codice')||''}catch(e){return ''}};
@@ -320,6 +334,7 @@ async function openPronto(){
   h+=riga(daC>0,'Posizioni dal contratto: <b>'+daC+'</b>'+(daC?'':' (apri il file del cantiere con «Apri cantiere»)')+(daCant?'. Nate in cantiere: '+daCant:''));
   h+=riga(!manca.length,attesi.length?'Piantine salvate nell\'app: <b>'+(attesi.length-manca.length)+' di '+attesi.length+'</b>'+(manca.length?'<br>Mancano: '+esc(manca.join(', '))+'. Tocca «Piantina» e «Aggiungi file».':''):'Nessuna piantina indicata dal cantiere');
   h+=riga(pers==='sì','Memoria dell\'app protetta: <b>'+pers+'</b>'+(pers==='sì'?'':'. Non cancellare i dati di Chrome e non usare la navigazione in incognito.'));
+  const av=avvisiTutti(c);h+=riga(!av.length,av.length?'Misure fuori limite: <b>'+av.length+'</b><br>'+esc(av.slice(0,8).join('; '))+(av.length>8?'...':''):'Nessuna misura fuori limite');
   h+='<div class="hint">Rete adesso: '+(navigator.onLine?'presente':'assente')+(c.importato?'. Cantiere aperto il '+esc(c.importato.slice(0,10)):'')+'.</div>';
   h+='<div class="box" style="font-size:18px;text-align:center;margin-top:10px"><b>'+(tutto?'Tutto pronto: puoi lavorare senza rete.':'Manca qualcosa: controlla le righe con ✗.')+'</b></div>';
   ed.innerHTML=h;ed.scrollTop=0;document.getElementById('foot').innerHTML=(codice()?'<button id="bScTutti2">Scarica i cantieri pronti</button>':'')+'<button class="pri" id="eOk">Chiudi</button>';document.getElementById('ov').classList.add('on');
@@ -390,7 +405,8 @@ async function scaricaTutti(){
   alert('Scaricati '+ok+(ko?', con problemi '+ko:'')+'\n'+righe.join('\n'));
 }
 async function inviaCantiere(){
-  const d=datiCantiere();
+  const d=datiCantiere(),av=avvisiTutti(C());
+  if(av.length&&!confirm('Ci sono '+av.length+' misure fuori limite:\n'+av.slice(0,8).join('\n')+'\nInvio lo stesso?'))return;
   try{const r=await apiChiama({post:{a:'ritorno',nome:d.nome,dati:d.o}});alert('Inviato al CRM: '+r.nome)}
   catch(e){const m=String(e&&e.message||e);if(m==='nocodice'||m==='codicesbagliato'){openCantieri('Per inviare serve il codice di accesso.');return}alert('Non riesco a inviare (manca la rete?). Il rilievo resta nel tablet: riprova con la rete, oppure usa Esporta cantiere.')}
 }
@@ -407,7 +423,7 @@ function openTrasp(keep){
   document.getElementById('foot').innerHTML='<button class="pri" id="eOk">Fatto</button>';
   document.getElementById('ov').classList.add('on');
 }
-function formule(){const el=document.getElementById('forms');if(!el||EI<0)return;const p=C().pos[EI],o=p[M()==='esec'?'esec':'ril'],a=p.ale;
+function formule(){aggiornaAvvisi();const el=document.getElementById('forms');if(!el||EI<0)return;const p=C().pos[EI],o=p[M()==='esec'?'esec':'ril'],a=p.ale;
   el.innerHTML='Larghezza: '+alS(a.sx)+' + '+fmt(o.L)+' + '+alS(a.dx)+'<br>Altezza: '+alS(a.giu)+' + '+fmt(o.H)+' + '+alS(a.su)}
 function closeEd(){document.getElementById('ov').classList.remove('on');document.getElementById('ed').scrollTop=0;EI=-1;save();render()}
 const MISURA=/^(ril|esec)\.(BF|BL|LST|HST|L|H|Lmax|Hmax|spMuro)$/,TESTO=['id','note','coll.mod','stanza','etichetta','qta','sistema'];
