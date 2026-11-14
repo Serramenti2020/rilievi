@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#c8102e">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Rilievi Corrado Serramenti</title>
+<style>
+:root{--bg:#f1f1ef;--card:#fff;--ink:#1c1c1c;--mut:#6b6b6b;--red:#c8102e;--line:#c9c9c9;--ok:#1b7f3b;--hi:#fff1c2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 system-ui,Segoe UI,Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.bar{position:sticky;top:0;z-index:5;background:#fff;border-bottom:2px solid var(--red);padding:8px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar select,.bar button{min-height:44px;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.tab{font-weight:600}
+.tab.on{background:var(--red)!important;color:#fff;border-color:var(--red)!important}
+.ver{font-size:12px;color:var(--mut)}
+.sp{flex:1}
+.wrap{padding:12px;max-width:1100px;margin:0 auto}
+.page{background:var(--card);border:1px solid var(--line);margin:0 auto 18px;padding:10px;width:100%;max-width:794px}
+.head{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:4px 14px;margin-bottom:8px}
+.head h2{grid-row:span 3;margin:0;font-size:22px;letter-spacing:.12em;color:var(--red);align-self:center}
+.head label{display:flex;gap:6px;font-size:13px;border-bottom:1px solid var(--ink);align-items:center}
+.head label span{color:var(--mut);white-space:nowrap}
+.head input{border:0;flex:1;min-width:0;background:transparent;padding:2px;font-size:14px}
+.tr{border:1px dashed var(--line);border-radius:6px;padding:6px 8px;margin-bottom:8px;font-size:13px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--ink);border-left:1px solid var(--ink)}
+.cell{border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);min-height:240px;padding:6px;position:relative;cursor:pointer;display:flex;flex-direction:column;gap:3px;font-size:14px;align-items:stretch}
+.cell:active{background:var(--hi)}
+.cell .top{font-weight:600;font-size:14px;min-height:20px;padding-right:80px;text-transform:uppercase}
+.cell .nt{font-size:12px;color:#333}
+.cell .pos{margin-top:auto;font-size:13px;color:#333;padding-top:4px}
+.cell .pos b{font-size:16px}
+#pv{position:fixed;inset:0;background:#fff;z-index:60;display:none;overflow:auto}
+#pv.on{display:block}
+#pv img{width:100%;max-width:none;display:block}
+#pvx{position:fixed;top:8px;right:8px;z-index:61;min-height:44px;padding:0 14px;font-size:16px}
+.spm{position:absolute;top:28px;right:8px;font-size:12px;transform:rotate(-20deg);font-weight:600}
+.qta{font-weight:700}
+.sis{border:1px solid #888;border-radius:6px;padding:0 5px;font-size:12px}
+.etich{background:var(--hi);border:1px solid #e0c870;border-radius:8px;padding:0 7px;font-size:12px;text-transform:uppercase}
+.cell .add{margin:auto;font-size:38px;color:var(--line)}
+.dw{display:flex;justify-content:center;align-items:center;gap:6px}
+.vt{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap}
+.cell .m{text-align:center}
+.m{font-family:ui-monospace,Consolas,monospace;font-size:13px}
+.pre{color:var(--mut);text-decoration:line-through;font-size:12px}
+.ks{position:absolute;top:6px;right:6px;display:flex;gap:3px}
+.k{width:22px;height:22px;border:1px solid var(--line);border-radius:50%;font-size:12px;display:grid;place-items:center;color:var(--line)}
+.k.on{color:#fff;background:var(--ok);border-color:var(--ok)}
+.firma{border:1px solid var(--ink);background:#fff;touch-action:none;width:100%;max-width:500px;height:140px;display:block}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10;display:none}
+.ov.on{display:block}
+.ed{position:absolute;right:0;top:0;bottom:0;width:min(560px,100%);background:#fff;overflow:auto;padding:14px 16px 90px}
+.ed h3{margin:14px 0 6px;font-size:15px;color:var(--red);text-transform:uppercase;letter-spacing:.06em}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:6px}
+.f{display:flex;flex-direction:column;font-size:13px;color:var(--mut);flex:1;min-width:120px}
+.f input,.f select,.f textarea{min-height:48px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:20px;color:var(--ink);background:#fff;width:100%}
+.f input:focus,.f textarea:focus{outline:3px solid var(--red);background:var(--hi)}
+.f textarea{font-size:16px;min-height:80px}
+.f small{font-size:12px;color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:44px;padding:4px 12px;border:1px solid var(--line);border-radius:22px;background:#fff}
+.chip.on{background:var(--red);border-color:var(--red);color:#fff}
+.al{min-width:96px;min-height:48px;border:2px solid var(--ink);border-radius:8px;background:#fff;font-weight:700}
+.al.v0{background:#e6e6e6}
+.al.v1{background:var(--hi)}
+.al.v2{background:var(--red);color:#fff;border-color:var(--red)}
+.draw{display:flex;flex-wrap:wrap;gap:8px}
+.draw button{border:1px solid var(--line);border-radius:8px;background:#fff;padding:4px;width:92px;font-size:11px}
+.draw button.on{border:3px solid var(--red);padding:2px}
+.dis{display:flex;gap:12px;align-items:center;margin-bottom:6px}
+.box{background:#f6f6f6;border:1px dashed var(--line);border-radius:8px;padding:8px 10px;font-size:14px;margin-bottom:6px}
+.foot{position:fixed;right:0;bottom:0;width:min(560px,100%);background:#fff;border-top:1px solid var(--line);padding:10px 16px;display:flex;gap:8px}
+.foot button{min-height:50px;flex:1;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:600}
+.foot .pri{background:var(--red);color:#fff;border-color:var(--red)}
+.foot .del{flex:0 0 auto;color:var(--red)}
+.hint{font-size:13px;color:var(--mut);margin:4px 0}
+@media print{
+ .bar,.ov,.noprint{display:none!important}
+ body{background:#fff}
+ .wrap{padding:0;max-width:none}
+ .page{border:0;margin:0;padding:0;max-width:none;page-break-after:always}
+ .cell{min-height:80mm}
+ .cell:active{background:none}
+ .tr{border:0;padding:0}
+}
+</style>
+</head>
+<body>
+<div class="bar noprint" id="bar"></div>
+<div class="wrap" id="wrap"></div>
+<div id="pv"><button id="pvx">Chiudi piantina</button><img id="pvi" alt="Piantina"></div>
+<div class="ov" id="ov"><div class="ed" id="ed"></div><div class="foot" id="foot"></div></div>
+
+<script>
+"use strict";
+const VERSIONE='v05';
+/* Nomi dei modelli: R1 Rilievo, E1 Esecutivo, M1 Monoblocco, T1 Controtelai, C1 Collaudo */
+const MODELLI=[['ril','R1 Rilievo'],['esec','E1 Esecutivo'],['mono','M1 Monoblocco'],['ctel','T1 Controtelai'],['coll','C1 Collaudo']];
+const LS='rilievi_corrado_v2';
+const STANZE=['Soggiorno','Cucina','Camera','Cameretta','Bagno','Studio','Ingresso','Corridoio','Scala','Salone','Letto 1','Letto 2','Letto 3','Lavanderia','Stanzino'];
+const SISTEMI=['S44','EVO2'];
+const APERTURE=[['VIT','Vista interna, tirare'],['VISP','Vista interna, spingere'],['VET','Vista esterna, tirare'],['VESP','Vista esterna, spingere']];
+const ETICHETTE=['Vetrata','Persiana','Scorrevole','Serratura','Soglietta','Zoccolino','Muratore','Zanzariera','Telaio a giro','Portone'];
+const ORDINE=['F','<','>','SR','SL'];
+const DISEGNI=[['<','1 anta <'],['>','1 anta >'],['F','Fisso'],['F|<','Fisso + anta <'],['<|>','2 ante'],['F|F','2 fissi'],['SR|F','Scorrevole, fisso a destra'],['F|SL','Scorrevole, fisso a sinistra'],['F|<|F','Fisso, anta, fisso']];
+const RAPIDE=['Fuori piano 30x2','Dentro silicone verniciabile','Fascetto esterno 3 lati','Scarichi frontali','Sotto polipan','Aletta 35','Controtelaio?'];
+/* Sigle fisse: BF battuta frontale, BL battuta laterale, LST luce stipiti larghezza, HST luce stipiti altezza,
+   L e H misura infisso, Lmax e Hmax luce massima */
+const RIGHE=[[['BF','Battuta frontale BF'],['BL','Battuta laterale BL']],[['LST','Luce stipiti LST'],['HST','Luce stipiti HST']],[['L','Misura infisso L'],['H','Misura infisso H']],[['Lmax','Luce max Lmax'],['Hmax','Luce max Hmax']],[['spMuro','Spessore muro']]];
+const MIS_MONO=[['L','Larghezza (al cm)'],['H','Altezza (al cm)'],['spMuro','Spessore muro'],['cappotto','Cappotto'],['architrave','Architrave'],['sottobancale','Sottobancale'],['mezzeria','Mezzeria'],['BF','BF'],['BL','BL']];
+const MIS_CTEL=[['L','Larghezza controtelaio'],['H','Altezza controtelaio'],['BF','BF'],['BL','BL']];
+const PIANI=['Semint.','PT','1','2','3','4','5+','Mansarda'];
+const MEZZI=['A mano','Scala interna','Scala esterna','Ponteggio','Elevatore','Gru','Autogru'];
+
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>(n===undefined||n===null||n==='')?'':String(n).replace('.',',');
+function parseMm(s){s=String(s).trim().toLowerCase().replace(/mm|\s/g,'').replace(',','.');const m=s.match(/-?\d+(\.\d+)?/);return m?Math.round(parseFloat(m[0])*10)/10:null}
+const lettera=i=>String.fromCharCode(65+i%26)+(i>=26?Math.floor(i/26):'');
+const nuovaPos=id=>({id,stanza:'',etichetta:'',qta:'',sistema:'',apertura:'',tipo:'',descrizione:'',nominale:{},complementi:[],verifica:[],vOk:false,origine:'',disegno:'<',note:'',ril:{},esec:{},ale:{sx:{t:''},dx:{t:''},su:{t:''},giu:{t:''}},mono:{},ctel:{},coll:{},prev:{},chk:{}});
+const nuovaTrasp=()=>({piano:'',mezzi:[],gru:'',diff:'',note:''});
+const nuovaCommessa=n=>({id:'c'+Date.now(),cliente:n,rif:'',luogo:'',data:new Date().toISOString().slice(0,10),colore:'',consegna:'',tipologia:'',firma:'',contratto:'',piantine:[],trasp:nuovaTrasp(),pos:[nuovaPos('A')]});
+
+function demo(){
+  const c=nuovaCommessa('Cliente di prova');c.rif='000/26';c.luogo='Modica';
+  const a=c.pos[0];a.stanza='Soggiorno';a.disegno='<';a.etichetta='Serratura';
+  a.ril={BF:54,BL:75,LST:904,HST:1250};
+  a.esec={L:980,H:1950,BF:54,BL:75,LST:904,HST:1250};
+  a.ale={sx:{t:'AL'},dx:{t:'ALn',n:35},su:{t:'AL'},giu:{t:'0'}};
+  a.note='Dentro silicone verniciabile. Fuori piano 30x2.';a.mono={L:1100,H:2350,spMuro:330};a.ctel={L:1150,H:2400};
+  const b=nuovaPos('B');b.stanza='Bagno';b.disegno='SR|F';b.etichetta='Persiana';b.ril={LST:700,HST:1250};b.esec={L:765,H:1303};b.prev={'esec.L':760};
+  c.pos.push(b);
+  return {cur:c.id,modello:'ril',commesse:[c]};
+}
+let S=(function(){try{const s=JSON.parse(localStorage.getItem(LS));if(s&&s.commesse&&s.commesse.length)return s}catch(e){}return demo()})();
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}};
+const C=()=>S.commesse.find(c=>c.id===S.cur)||S.commesse[0];
+const M=()=>S.modello;
+const NOME=()=>MODELLI.find(x=>x[0]===M())[1];
+const T=c=>c.trasp||(c.trasp=nuovaTrasp());
+
+function getp(p,path){return path.split('.').reduce((o,k)=>o&&o[k],p)}
+function setp(p,path,v){const ks=path.split('.');let o=p;for(let i=0;i<ks.length-1;i++){o[ks[i]]=o[ks[i]]||{};o=o[ks[i]]}o[ks[ks.length-1]]=v}
+const alS=a=>(!a||!a.t)?'_':a.t==='0'?'0':a.t==='AL'?'AL':a.t==='N'?(a.n===undefined||a.n===null?'?':fmt(a.n)):'AL('+(a.n||'?')+')';
+
+/* ---------- disegno: F fisso, < > anta, SR SL scorrevole (freccia verso il centro) ---------- */
+function svgTipo(code,w,h,inter){
+  w=w||60;h=h||80;const panes=code.split('|'),pw=w/panes.length,m=h/2;
+  let s='<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" fill="none" stroke="#1c1c1c" stroke-width="1.8">';
+  s+='<rect x="1" y="1" width="'+(w-2)+'" height="'+(h-2)+'"/>';
+  panes.forEach((t,i)=>{const x0=i*pw,x1=(i+1)*pw;if(i>0)s+='<line x1="'+x0+'" y1="1" x2="'+x0+'" y2="'+(h-1)+'"/>';
+    if(t==='<')s+='<polyline points="'+(x1-6)+',6 '+(x0+6)+','+m+' '+(x1-6)+','+(h-6)+'"/>';
+    else if(t==='>')s+='<polyline points="'+(x0+6)+',6 '+(x1-6)+','+m+' '+(x0+6)+','+(h-6)+'"/>';
+    else if(t==='F')s+='<text x="'+((x0+x1)/2)+'" y="'+(m+6)+'" text-anchor="middle" font-size="'+Math.min(22,pw*0.5)+'" fill="#1c1c1c" stroke="none">F</text>';
+    else if(t==='SR')s+='<line x1="'+(x0+8)+'" y1="'+m+'" x2="'+(x1-8)+'" y2="'+m+'"/><polyline points="'+(x1-16)+','+(m-6)+' '+(x1-8)+','+m+' '+(x1-16)+','+(m+6)+'"/>';
+    else if(t==='SL')s+='<line x1="'+(x0+8)+'" y1="'+m+'" x2="'+(x1-8)+'" y2="'+m+'"/><polyline points="'+(x0+16)+','+(m-6)+' '+(x0+8)+','+m+' '+(x0+16)+','+(m+6)+'"/>';
+    if(inter)s+='<rect data-pane="'+i+'" x="'+x0+'" y="0" width="'+pw+'" height="'+h+'" fill="rgba(255,255,255,0.01)" stroke="none" style="cursor:pointer"/>';
+  });
+  return s+'</svg>';
+}
+
+/* ---------- barra e fogli ---------- */
+function renderBar(){
+  const c=C();
+  document.getElementById('bar').innerHTML=
+   '<span class="ver">Rilievi '+VERSIONE+'</span><select id="selC">'+S.commesse.map(x=>'<option value="'+x.id+'"'+(x.id===c.id?' selected':'')+'>'+esc(x.cliente||'(senza nome)')+'</option>').join('')+'</select>'+
+   '<button id="nuovaC">+ Cliente</button>'+
+   MODELLI.map(m=>'<button class="tab'+(m[0]===M()?' on':'')+'" data-m="'+m[0]+'">'+m[1]+'</button>').join('')+
+   '<button id="bApri">Apri cantiere</button><button id="bPian">Piantina</button><button id="bPronto" class="pri">Pronto per uscire</button><span class="sp"></span><button id="bEsc">Esporta cantiere</button><button id="bPrint">Stampa / PDF</button><button id="bExp">Esporta</button><button id="bImp">Importa</button>'+
+   '<input type="file" id="fImp" accept=".json" hidden><input type="file" id="fCant" accept=".json,application/pdf,image/*" multiple hidden><input type="file" id="fPian" accept="application/pdf,image/*" multiple hidden>';
+}
+function chkHtml(p){const k=p.chk[M()]||{};return '<span class="ks"><span class="k'+(k.c1?' on':'')+'">X</span><span class="k'+(k.c2?' on':'')+'">&#9711;</span><span class="k'+(k.c3?' on':'')+'">_</span></span>'}
+function cellMis(p,m){
+  const pf=m==='esec'?'esec':'ril',o=p[pf],a=p.ale,pre=k=>p.prev[pf+'.'+k]!==undefined?' <span class="pre">'+fmt(p.prev[pf+'.'+k])+'</span>':'';
+  let h='';
+  if(o.BF!==undefined||o.BL!==undefined)h+='<div class="m">BF '+fmt(o.BF)+'&emsp;BL '+fmt(o.BL)+'</div>';
+  h+='<div class="dw"><div class="vt m">'+(o.H!==undefined?alS(a.giu)+' + '+fmt(o.H)+' + '+alS(a.su)+pre('H'):'')+'</div>'+svgTipo(p.disegno,70,84)+'</div>';
+  if(o.L!==undefined)h+='<div class="m">'+alS(a.sx)+' + '+fmt(o.L)+' + '+alS(a.dx)+pre('L')+'</div>';
+  if(o.LST!==undefined||o.HST!==undefined)h+='<div class="m">LST '+fmt(o.LST)+'&emsp;HST '+fmt(o.HST)+'</div>';
+  if(o.spMuro!==undefined)h+='<div class="spm">sp. '+fmt(o.spMuro)+'</div>';
+  if(o.Lmax!==undefined||o.Hmax!==undefined)h+='<div class="m">Lmax '+fmt(o.Lmax)+'&emsp;Hmax '+fmt(o.Hmax)+'</div>';
+  return h;
+}
+function cellBody(p){
+  const m=M();let mid='';
+  const mis=(o,keys)=>keys.map(k=>o[k[0]]!==undefined&&o[k[0]]!==''?'<div class="m">'+k[0]+' '+fmt(o[k[0]])+'</div>':'').join('');
+  if(m==='ril'||m==='esec')mid=cellMis(p,m);
+  else if(m==='mono')mid=(p.mono.L!==undefined||p.mono.H!==undefined?'<div class="m" style="font-size:16px">'+fmt(p.mono.L)+' x '+fmt(p.mono.H)+'</div>':'')+mis(p.mono,MIS_MONO.slice(2));
+  else if(m==='ctel')mid=(p.ctel.L!==undefined||p.ctel.H!==undefined?'<div class="m" style="font-size:16px">'+fmt(p.ctel.L)+' x '+fmt(p.ctel.H)+'</div>':'')+mis(p.ctel,MIS_CTEL.slice(2))+diffHtml(p,true);
+  else if(m==='coll'){const c=p.coll;mid='<div class="dw">'+svgTipo(p.disegno,60,70)+'</div>'+(p.esec.L!==undefined?'<div class="m">'+alS(p.ale.sx)+' + '+fmt(p.esec.L)+' + '+alS(p.ale.dx)+'</div>':'')+(c.esito?'<div style="text-align:center"><b>'+esc(c.esito)+'</b></div>':'')+(c.L!==undefined||c.H!==undefined?'<div class="m">rilevato '+fmt(c.L)+' x '+fmt(c.H)+'</div>':'')+(c.mod?'<div class="nt">'+esc(c.mod)+'</div>':'')}
+  return chkHtml(p)+'<div class="top">'+(p.stanza?esc(p.stanza):'&nbsp;')+((p.verifica&&p.verifica.length&&!p.vOk)?' <b style="color:#b00">?</b>':'')+'</div>'+(p.note&&m!=='coll'?'<div class="nt">'+esc(p.note)+'</div>':'')+mid+
+    '<div class="pos">Posizione <b>'+esc(p.id)+'</b>'+(p.qta?' <span class="qta">N° '+esc(p.qta)+'</span>':'')+(p.sistema?' <span class="sis">'+esc(p.sistema)+'</span>':'')+(p.apertura?' <span class="sis">'+esc(p.apertura)+'</span>':'')+(p.etichetta?' <span class="etich">'+esc(p.etichetta)+'</span>':'')+'</div>';
+}
+function traspS(c){const t=T(c),r=[];if(t.piano)r.push('Piano '+t.piano);if(t.mezzi.length)r.push('Scarico: '+t.mezzi.join(', '));if(t.gru)r.push('Gru: '+t.gru);if(t.diff)r.push('Difficoltà: '+t.diff);if(t.note)r.push(t.note);return r.join(' | ')}
+function renderWrap(){
+  const c=C(),n=c.pos.length,np=Math.max(1,Math.ceil((n+1)/9));let h='';
+  for(let pg=0;pg<np;pg++){
+    h+='<div class="page"><div class="head"><h2>FOGLIO MISURE</h2>'+
+     hf('data','Data',c.data,'date')+hf('luogo','Luogo',c.luogo)+hf('cliente','Cliente',c.cliente)+hf('rif','Rif',c.rif)+
+     '<label><span>Rilievo</span><b>'+NOME()+'</b></label>'+hf('tipologia','Tipologia',c.tipologia)+hf('colore','Colore',c.colore)+hf('consegna','Consegna',c.consegna)+'</div>';
+    if(pg===0&&M()==='ril'){const s=traspS(c);h+='<div class="tr'+(s?'':' noprint')+'" data-trasp="1"><b>Trasporto e scarico:</b> '+(s?esc(s):'tocca per compilare (piano, gru, mezzo di scarico)')+'</div>'}
+    h+='<div class="grid">';
+    for(let i=0;i<9;i++){const ix=pg*9+i;
+      if(ix<n)h+='<div class="cell" data-i="'+ix+'">'+cellBody(c.pos[ix])+'</div>';
+      else if(ix===n)h+='<div class="cell noprint" data-add="1"><div class="add">+</div></div>';
+      else h+='<div class="cell noprint" style="cursor:default"></div>';}
+    h+='</div></div>';
+  }
+  if(M()==='coll')h+='<div class="page"><b>Firma del cliente</b><canvas class="firma" id="fir" width="500" height="140"></canvas><button class="noprint" id="firClr">Cancella firma</button></div>';
+  document.getElementById('wrap').innerHTML=h;
+  if(M()==='coll')iniFirma();
+}
+const hf=(k,l,v,t)=>'<label><span>'+l+'</span><input data-h="'+k+'" type="'+(t||'text')+'" value="'+esc(v)+'"></label>';
+function render(){renderBar();renderWrap()}
+
+/* ---------- differenze (solo numeri, nessun verdetto) ---------- */
+function diffHtml(p,breve){
+  const d=(a,b)=>(a===undefined||b===undefined)?'':(b-a>0?'+':'')+fmt(Math.round((b-a)*10)/10);
+  const r=[];
+  if(p.mono.L!==undefined||p.mono.H!==undefined)r.push('controtelaio meno monoblocco: L '+(d(p.mono.L,p.ctel.L)||'-')+', H '+(d(p.mono.H,p.ctel.H)||'-'));
+  if(p.esec.L!==undefined||p.esec.H!==undefined)r.push('controtelaio meno infisso: L '+(d(p.esec.L,p.ctel.L)||'-')+', H '+(d(p.esec.H,p.ctel.H)||'-'));
+  return r.length?(breve?'<div class="nt">'+r.join('<br>')+'</div>':r.map(x=>'<div class="box m">'+x+' (mm)</div>').join('')):'';
+}
+
+/* ---------- editor posizione ---------- */
+let EI=-1;
+function mi(p,path,label){const v=getp(p,path);return '<label class="f">'+label+'<input class="mi" data-p="'+path+'" inputmode="decimal" autocomplete="off" value="'+esc(fmt(v))+'">'+(p.prev[path]!==undefined?'<small>prima: <s>'+fmt(p.prev[path])+'</s></small>':'')+'</label>'}
+function alBtn(p,lato,label){const a=p.ale[lato]||{t:''};const cls=a.t===''?'':a.t==='0'?' v0':a.t==='AL'?' v1':' v2';
+  const conN=a.t==='ALn'||a.t==='N';
+  return '<div class="f" style="min-width:110px;flex:0 0 auto">'+label+'<button class="al'+cls+'" data-al="'+lato+'">'+alS(a)+'</button>'+(conN?'<input class="mi" data-aln="'+lato+'" inputmode="decimal" placeholder="mm" value="'+esc(fmt(a.n))+'" style="margin-top:4px;font-size:16px;min-height:40px">':'')+'</div>'}
+const chip=(on,attr,txt)=>'<button class="chip'+(on?' on':'')+'" '+attr+'>'+esc(txt)+'</button>';
+function openEd(i,keep){
+  EI=i;const c=C(),p=c.pos[i],m=M(),ed=document.getElementById('ed'),sc=keep?ed.scrollTop:0;let h='';
+  h+='<div class="row"><label class="f" style="flex:0 0 110px">Posizione<input data-p="id" value="'+esc(p.id)+'"></label>'+
+    '<label class="f">Stanza (in alto)<input data-p="stanza" value="'+esc(p.stanza)+'" placeholder="Soggiorno, Bagno..."></label></div>';
+  h+='<div class="chips">'+STANZE.map(s=>chip(p.stanza===s,'data-stanza="'+s+'"',s)).join('')+'</div>';
+  h+='<h3>Etichetta (in basso, accanto alla posizione)</h3><label class="f"><input data-p="etichetta" value="'+esc(p.etichetta)+'" placeholder="Scrivi quello che vuoi"></label><div class="chips" style="margin-top:6px">'+ETICHETTE.map(s=>chip(p.etichetta===s,'data-etic="'+s+'"',s)).join('')+'</div>';
+  if(p.descrizione||p.tipo){h+='<div class="box" style="margin-top:8px"><b>Dal contratto:</b> '+esc(p.descrizione||p.tipo)+((p.complementi&&p.complementi.length)?'<br>Con: '+esc(p.complementi.join('; ')):'')+((p.verifica&&p.verifica.length)?'<br><b style="color:#b00">Da verificare:</b> '+esc(p.verifica.join('; '))+'<div class="chips" style="margin-top:6px">'+chip(p.vOk,'data-vok="1"','Verificato')+'</div>':'')+'</div>'}
+  h+='<div class="row" style="margin-top:8px"><label class="f" style="flex:0 0 150px">Quantità (N°)<input data-p="qta" value="'+esc(p.qta)+'" placeholder="2 oppure 1 DX 1 SX"></label><label class="f">Sistema / serie<input data-p="sistema" value="'+esc(p.sistema)+'" placeholder="S44, EVO2..."></label></div>';
+  h+='<div class="chips">'+SISTEMI.map(s=>chip(p.sistema===s,'data-sis="'+s+'"',s)).join('')+'</div>';
+  h+='<h3>Senso di apertura</h3><div class="chips">'+APERTURE.map(a=>chip(p.apertura===a[0],'data-ape="'+a[0]+'"',a[0]+' '+a[1])).join('')+'</div>';
+  h+='<h3>Disegno</h3><div class="dis">'+svgTipo(p.disegno,150,190,true)+'<div><div class="chips">'+chip(0,'data-anta="+"','+ anta')+chip(0,'data-anta="-"','- anta')+'</div><div class="hint">Tocca un\'anta per cambiarla: fisso F, anta &lt; o &gt;, scorrevole con freccia verso il centro.</div></div></div>'+
+    '<div class="draw">'+DISEGNI.map(d=>'<button data-dis="'+d[0]+'" class="'+(p.disegno===d[0]?'on':'')+'">'+svgTipo(d[0],56,64)+'<div>'+d[1]+'</div></button>').join('')+'</div>';
+  if(m==='ril'||m==='esec'){
+    const pf=m==='esec'?'esec':'ril';
+    if(m==='esec'){const r=p.ril;h+='<h3>Dal rilievo</h3><div class="box m">BF '+fmt(r.BF)+' BL '+fmt(r.BL)+' | LST '+fmt(r.LST)+' HST '+fmt(r.HST)+' | L '+fmt(r.L)+' H '+fmt(r.H)+' | Lmax '+fmt(r.Lmax)+' Hmax '+fmt(r.Hmax)+'</div>'}
+    h+='<h3>'+(m==='esec'?'Misure esecutive':'Misure rilievo')+' (mm)</h3><div class="hint">Con il Leica: tocca il campo e premi il tasto, il numero si scrive da solo. Senza Leica (metro a mano): tocca il campo e scrivi con la tastiera. Invio passa al campo dopo.</div>'+(p.nominale&&p.nominale.L?'<div class="hint">Nominale da contratto: '+fmt(p.nominale.L)+' x '+fmt(p.nominale.H)+' mm</div>':'');
+    h+=RIGHE.map(r=>'<div class="row">'+r.map(k=>mi(p,pf+'.'+k[0],k[1])).join('')+'</div>').join('');
+    h+='<h3>Alette</h3><div class="hint">Tocca per cambiare: _ (da definire), 0, ALETTA, ALETTA(n), numero semplice (es. 1 o 0,5).</div><div class="row">'+alBtn(p,'sx','Sinistra')+alBtn(p,'dx','Destra')+alBtn(p,'giu','Sotto')+alBtn(p,'su','Sopra')+'</div>';
+    h+='<div class="box m" id="forms"></div>';
+  }else if(m==='mono'){
+    h+='<h3>Monoblocco (mm, arrotondati al cm)</h3><div class="row" style="flex-wrap:wrap">'+MIS_MONO.map(k=>mi(p,'mono.'+k[0],k[1])).join('')+'</div>';
+  }else if(m==='ctel'){
+    h+='<h3>Controtelaio da conferma d\'ordine (mm)</h3><div class="row">'+MIS_CTEL.map(k=>mi(p,'ctel.'+k[0],k[1])).join('')+'</div>';
+    h+='<h3>Differenze</h3><div id="diff">'+(diffHtml(p,false)||'<div class="hint">Inserisci le misure del monoblocco o dell\'infisso esecutivo per vedere le differenze.</div>')+'</div><div class="hint">Solo differenze in mm. Il giudizio giusto/sbagliato arriva quando definiamo le formule.</div>';
+  }else if(m==='coll'){
+    const e=p.esec;
+    h+='<h3>Da eseguire (esecutivo)</h3><div class="box m">'+alS(p.ale.sx)+' + '+fmt(e.L)+' + '+alS(p.ale.dx)+'<br>'+alS(p.ale.giu)+' + '+fmt(e.H)+' + '+alS(p.ale.su)+'<br>'+esc(p.note)+'</div>';
+    h+='<h3>Collaudo (mm)</h3><div class="row">'+mi(p,'coll.L','L rilevata')+mi(p,'coll.H','H rilevata')+'</div>';
+    h+='<div class="chips">'+['Conforme','Con modifiche','Non conforme'].map(x=>chip(p.coll.esito===x,'data-esito="'+x+'"',x)).join('')+'</div>';
+    h+='<label class="f" style="margin-top:8px">Modifiche da fare<textarea data-p="coll.mod">'+esc(p.coll.mod||'')+'</textarea></label>';
+  }
+  if(m!=='coll'){
+    h+='<h3>Note e rifiniture per i posatori</h3><div class="chips" style="margin-bottom:6px">'+RAPIDE.map(x=>chip(0,'data-rap="'+esc(x)+'"',x)).join('')+'</div><label class="f"><textarea data-p="note" placeholder="Scrivi liberamente">'+esc(p.note)+'</textarea></label>';
+  }
+  const k=p.chk[m]||{};
+  h+='<h3>Controlli</h3><div class="chips">'+chip(k.c1,'data-chk="c1"','X Controllato')+chip(k.c2,'data-chk="c2"','◯ Controverifica conferma ordine')+chip(k.c3,'data-chk="c3"','_ Tutto corretto')+'</div>';
+  ed.innerHTML=h;ed.scrollTop=sc;
+  document.getElementById('foot').innerHTML='<button class="del" id="eDel">Elimina</button><button class="pri" id="eOk">Fatto</button>';
+  document.getElementById('ov').classList.add('on');
+  formule();
+  if(!keep&&(m==='ril'||m==='esec')){const fi=[...ed.querySelectorAll('.mi[data-p]')].find(x=>x.value==='');if(fi)try{fi.focus()}catch(e){}}
+}
+/* ---------- nuova posizione, piantina, scambio cantiere ---------- */
+const usati=c=>c.pos.map(p=>String(p.id).toLowerCase());
+function libera(c){const u=usati(c);for(let i=0;i<26;i++){const l=String.fromCharCode(65+i);if(!u.includes(l.toLowerCase()))return l}return 'Z'+(c.pos.length+1)}
+function figlia(c,base){const re=new RegExp('^'+base+'(\\d+)$','i');let mx=0;c.pos.forEach(p=>{const m=String(p.id).match(re);if(m)mx=Math.max(mx,+m[1])});return base+(mx+1)}
+function openNuova(){
+  EI=-3;const c=C(),ed=document.getElementById('ed');let h='<h3>Nuova posizione</h3><div class="hint">Posizione nata in cantiere: se è vicina a una già esistente, scegli «Nata da» (L diventa L1, poi L2).</div>';
+  h+='<div class="chips">'+chip(0,'data-nuova="'+libera(c)+'"','Lettera libera: '+libera(c))+'</div>';
+  const basi=[];c.pos.forEach(p=>{const b=String(p.id).replace(/\d+$/,'');if(b&&!basi.includes(b))basi.push(b)});
+  h+='<div class="hint" style="margin-top:10px">Nata da una posizione esistente</div><div class="chips">'+basi.map(b=>chip(0,'data-nuova="'+figlia(c,b)+'"','Da '+b+' → '+figlia(c,b))).join('')+'</div>';
+  ed.innerHTML=h;ed.scrollTop=0;document.getElementById('foot').innerHTML='<button id="eOk">Annulla</button>';document.getElementById('ov').classList.add('on');
+}
+/* ---------- file nell'app (piantine): restano sul tablet anche senza rete e senza Drive ---------- */
+const MEM=new Map();
+const DBF={
+  open(){if(typeof indexedDB==='undefined')return Promise.resolve(null);if(this.p)return this.p;this.p=new Promise((ok,ko)=>{const r=indexedDB.open('rilievi_files',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)});return this.p},
+  async put(k,v){const d=await this.open();if(!d){MEM.set(k,v);return}return new Promise((ok,ko)=>{const t=d.transaction('f','readwrite');t.objectStore('f').put(v,k);t.oncomplete=()=>ok();t.onerror=()=>ko(t.error)})},
+  async lista(cid){const d=await this.open(),pre=cid+'|';if(!d)return [...MEM.entries()].filter(e=>e[0].startsWith(pre)).map(e=>e[1]);return new Promise((ok,ko)=>{const out=[],rq=d.transaction('f').objectStore('f').openCursor();rq.onsuccess=()=>{const cu=rq.result;if(cu){if(String(cu.key).startsWith(pre))out.push(cu.value);cu.continue()}else ok(out)};rq.onerror=()=>ko(rq.error)})}
+};
+const salvaFile=(cid,fl)=>DBF.put(cid+'|'+fl.name.toLowerCase(),{name:fl.name,type:fl.type,size:fl.size,blob:fl,data:new Date().toISOString()});
+const haFile=(lst,n)=>lst.some(x=>x.name.toLowerCase()===String(n).toLowerCase());
+function mostraFile(rec){const u=URL.createObjectURL(rec.blob);document.getElementById('ov').classList.remove('on');EI=-1;if(String(rec.type).indexOf('image')===0){document.getElementById('pvi').src=u;document.getElementById('pv').classList.add('on')}else{window.open(u,'_blank')}}
+async function openPiantina(){
+  EI=-4;const c=C(),ed=document.getElementById('ed');let lst=[];try{lst=await DBF.lista(c.id)}catch(e){}
+  const attesi=c.piantine||[];
+  let h='<h3>Piantina</h3>'+(lst.length?'<div class="hint">Tocca per aprire (funziona anche senza rete):</div><div class="chips">'+lst.map(x=>chip(0,'data-pf="'+esc(x.name)+'"',x.name)).join('')+'</div>':'<div class="hint">Nessuna piantina salvata nell\'app per questo cantiere.</div>');
+  if(attesi.length)h+='<div class="hint" style="margin-top:10px">Attese dal cantiere: '+attesi.map(n=>(haFile(lst,n)?'✓ ':'✗ ')+esc(n)).join(' | ')+'</div>';
+  h+='<div class="hint">«Aggiungi file» salva la piantina dentro l\'app: poi si apre anche senza rete e senza Drive.</div>';
+  ed.innerHTML=h;ed.scrollTop=0;document.getElementById('foot').innerHTML='<button id="eOk">Chiudi</button><button class="pri" id="bScegli">Aggiungi file</button>';document.getElementById('ov').classList.add('on');
+}
+async function openPronto(){
+  EI=-5;const c=C(),ed=document.getElementById('ed');let lst=[];try{lst=await DBF.lista(c.id)}catch(e){}
+  const attesi=c.piantine||[],manca=attesi.filter(n=>!haFile(lst,n)),daC=c.pos.filter(p=>p.origine==='contratto').length,daCant=c.pos.filter(p=>p.origine==='cantiere').length;
+  let pers='non so';try{if(navigator.storage&&navigator.storage.persist)pers=((await navigator.storage.persisted())||(await navigator.storage.persist()))?'sì':'no'}catch(e){}
+  const riga=(ok,t)=>'<div class="box" style="margin:6px 0">'+(ok?'<b style="color:#060">✓</b> ':'<b style="color:#b00">✗</b> ')+t+'</div>';
+  const tutto=daC>0&&!manca.length;
+  let h='<h3>Pronto per uscire: '+esc(c.cliente)+'</h3>';
+  h+=riga(daC>0,'Posizioni dal contratto: <b>'+daC+'</b>'+(daC?'':' (apri il file del cantiere con «Apri cantiere»)')+(daCant?'. Nate in cantiere: '+daCant:''));
+  h+=riga(!manca.length,attesi.length?'Piantine salvate nell\'app: <b>'+(attesi.length-manca.length)+' di '+attesi.length+'</b>'+(manca.length?'<br>Mancano: '+esc(manca.join(', '))+'. Tocca «Piantina» e «Aggiungi file».':''):'Nessuna piantina indicata dal cantiere');
+  h+=riga(pers==='sì','Memoria dell\'app protetta: <b>'+pers+'</b>'+(pers==='sì'?'':'. Non cancellare i dati di Chrome e non usare la navigazione in incognito.'));
+  h+='<div class="hint">Rete adesso: '+(navigator.onLine?'presente':'assente')+(c.importato?'. Cantiere aperto il '+esc(c.importato.slice(0,10)):'')+'.</div>';
+  h+='<div class="box" style="font-size:18px;text-align:center;margin-top:10px"><b>'+(tutto?'Tutto pronto: puoi lavorare senza rete.':'Manca qualcosa: controlla le righe con ✗.')+'</b></div>';
+  ed.innerHTML=h;ed.scrollTop=0;document.getElementById('foot').innerHTML='<button class="pri" id="eOk">Chiudi</button>';document.getElementById('ov').classList.add('on');
+}
+function importaCantiere(x){
+  if(!x||!Array.isArray(x.posizioni))throw new Error('File non valido');
+  let c=S.commesse.find(k=>k.rif&&k.rif===x.numero&&k.cliente===x.cliente);
+  if(!c){c=nuovaCommessa(x.cliente||'');c.pos=[];S.commesse.push(c)}
+  c.rif=x.numero||c.rif;c.luogo=x.luogo||c.luogo;c.contratto=x.contratto||c.contratto||'';c.piantine=x.piantine||c.piantine||[];
+  ['data','colore','tipologia','consegna'].forEach(k=>{if(x[k]&&!c[k])c[k]=x[k]});
+  if(x.trasp)c.trasp=Object.assign(nuovaTrasp(),c.trasp||{},x.trasp);
+  let nuove=0,agg=0;
+  x.posizioni.forEach(q=>{
+    let p=c.pos.find(y=>String(y.id).toLowerCase()===String(q.id).toLowerCase());
+    if(!p){const q2=Object.assign({},q);if(typeof q2.qta==='number')q2.qta=q2.qta>1?String(q2.qta):'';p=Object.assign(nuovaPos(q.id),q2);if(!p.disegno)p.disegno='<';c.pos.push(p);nuove++}
+    else{agg++;['tipo','descrizione','nominale','complementi','verifica','origine'].forEach(k=>{if(q[k]!==undefined)p[k]=q[k]})}
+    if(!p.qta&&q.qta>1)p.qta=String(q.qta);
+    if(!p.note&&q.nota)p.note=q.nota;
+    if(!p.etichetta&&(q.complementi||[]).some(z=>/persiana/i.test(z)))p.etichetta='Persiana';
+  });
+  c.importato=new Date().toISOString();
+  S.cur=c.id;S.modello='ril';save();render();
+  return {nuove,agg,tot:c.pos.length,nome:c.cliente,id:c.id};
+}
+function esportaCantiere(){
+  const c=C(),o={formato:1,tipo:'ritorno',numero:c.rif,cliente:c.cliente,luogo:c.luogo,contratto:c.contratto||'',esportato:new Date().toISOString(),data:c.data,colore:c.colore,tipologia:c.tipologia,consegna:c.consegna,piantine:c.piantine||[],trasp:T(c),posizioni:c.pos};
+  const nome='rilievo_'+String(c.rif||'').replace(/\W+/g,'_')+'_'+String(c.cliente||'').replace(/\W+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.json';
+  const b=new Blob([JSON.stringify(o,null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nome;a.click();
+}
+/* ---------- trasporto e scarico (per cliente) ---------- */
+function openTrasp(keep){
+  EI=-2;const t=T(C()),ed=document.getElementById('ed'),sc=keep?ed.scrollTop:0;
+  let h='<h3>Trasporto e scarico</h3>';
+  h+='<div class="hint">Piano</div><div class="chips">'+PIANI.map(x=>chip(t.piano===x,'data-tp="piano" data-tv="'+x+'"',x)).join('')+'</div>';
+  h+='<div class="hint" style="margin-top:10px">Mezzo di scarico e salita (anche più di uno)</div><div class="chips">'+MEZZI.map(x=>chip(t.mezzi.includes(x),'data-tp="mezzi" data-tv="'+x+'"',x)).join('')+'</div>';
+  h+='<div class="hint" style="margin-top:10px">Gru necessaria</div><div class="chips">'+['Sì','No','Da verificare'].map(x=>chip(t.gru===x,'data-tp="gru" data-tv="'+x+'"',x)).join('')+'</div>';
+  h+='<div class="hint" style="margin-top:10px">Difficoltà di accesso</div><div class="chips">'+['Facile','Media','Difficile'].map(x=>chip(t.diff===x,'data-tp="diff" data-tv="'+x+'"',x)).join('')+'</div>';
+  h+='<label class="f" style="margin-top:10px">Note (strada stretta, divieti, distanza dal mezzo...)<textarea data-tn="1">'+esc(t.note)+'</textarea></label>';
+  ed.innerHTML=h;ed.scrollTop=sc;
+  document.getElementById('foot').innerHTML='<button class="pri" id="eOk">Fatto</button>';
+  document.getElementById('ov').classList.add('on');
+}
+function formule(){const el=document.getElementById('forms');if(!el||EI<0)return;const p=C().pos[EI],o=p[M()==='esec'?'esec':'ril'],a=p.ale;
+  el.innerHTML='Larghezza: '+alS(a.sx)+' + '+fmt(o.L)+' + '+alS(a.dx)+'<br>Altezza: '+alS(a.giu)+' + '+fmt(o.H)+' + '+alS(a.su)}
+function closeEd(){document.getElementById('ov').classList.remove('on');document.getElementById('ed').scrollTop=0;EI=-1;save();render()}
+const MISURA=/^(ril|esec)\.(BF|BL|LST|HST|L|H|Lmax|Hmax|spMuro)$/,TESTO=['id','note','coll.mod','stanza','etichetta','qta','sistema'];
+function applyField(el){
+  if(EI===-2){if(el.dataset.tn){T(C()).note=el.value;save()}return}
+  const p=C().pos[EI];if(!p)return;
+  if(el.dataset.aln){const v=parseMm(el.value);p.ale[el.dataset.aln].n=v;el.value=fmt(v);formule();save();return}
+  const path=el.dataset.p;if(!path)return;
+  if(TESTO.includes(path)){setp(p,path,el.value);save();return}
+  let v=el.value.trim()===''?undefined:parseMm(el.value);
+  if((path==='mono.L'||path==='mono.H')&&v!==undefined&&v!==null)v=Math.round(v/10)*10;
+  const old=getp(p,path);
+  if(MISURA.test(path)&&old!==undefined&&v!==undefined&&v!==null&&old!==v)p.prev[path]=old;
+  setp(p,path,v);el.value=fmt(v);formule();
+  const d=document.getElementById('diff');if(d)d.innerHTML=diffHtml(p,false);
+  save();
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.classList&&e.target.classList.contains('mi')){e.preventDefault();applyField(e.target);
+    const all=[...document.querySelectorAll('#ed .mi')];const i=all.indexOf(e.target);if(all[i+1])all[i+1].focus();else e.target.blur();}
+});
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button,.cell,[data-pane],[data-trasp]');if(!t)return;
+  const c=C();
+  if(t.dataset.m){S.modello=t.dataset.m;save();render();return}
+  if(t.id==='nuovaC'){const n=prompt('Nome del cliente');if(n){const x=nuovaCommessa(n);S.commesse.push(x);S.cur=x.id;save();render()}return}
+  if(t.id==='bApri'){document.getElementById('fCant').click();return}
+  if(t.id==='bEsc'){esportaCantiere();return}
+  if(t.id==='bPian'){openPiantina();return}
+  if(t.id==='bPronto'){openPronto();return}
+  if(t.dataset.pf){DBF.lista(C().id).then(l=>{const r=l.find(x=>x.name===t.dataset.pf);if(r)mostraFile(r)});return}
+  if(t.id==='bScegli'){document.getElementById('fPian').click();return}
+  if(t.id==='pvx'){document.getElementById('pv').classList.remove('on');return}
+  if(t.dataset.nuova){const c2=C(),p=nuovaPos(t.dataset.nuova);p.origine='cantiere';c2.pos.push(p);save();openEd(c2.pos.length-1);return}
+  if(t.id==='bPrint'){window.print();return}
+  if(t.id==='bExp'){const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='rilievi_'+new Date().toISOString().slice(0,10)+'.json';a.click();return}
+  if(t.id==='bImp'){document.getElementById('fImp').click();return}
+  if(t.id==='firClr'){c.firma='';save();renderWrap();return}
+  if(t.id==='eOk'){closeEd();return}
+  if(t.dataset.trasp!==undefined){openTrasp();return}
+  if(t.dataset.tp){const tr=T(c),k=t.dataset.tp,v=t.dataset.tv;
+    if(k==='mezzi'){const i=tr.mezzi.indexOf(v);if(i<0)tr.mezzi.push(v);else tr.mezzi.splice(i,1)}else tr[k]=tr[k]===v?'':v;
+    save();openTrasp(true);return}
+  if(t.classList.contains('cell')){
+    if(t.dataset.add){openNuova()}
+    else if(t.dataset.i!==undefined)openEd(+t.dataset.i);
+    return;
+  }
+  if(EI<0)return;const p=c.pos[EI];
+  if(t.id==='eDel'){if(confirm('Eliminare la posizione '+p.id+'?')){c.pos.splice(EI,1);if(!c.pos.length)c.pos.push(nuovaPos('A'));EI=-1;document.getElementById('ov').classList.remove('on');save();render()}return}
+  if(t.dataset.stanza){p.stanza=p.stanza===t.dataset.stanza?'':t.dataset.stanza;save();openEd(EI,true);return}
+  if(t.dataset.vok){p.vOk=!p.vOk;save();openEd(EI,true);return}
+  if(t.dataset.sis){p.sistema=p.sistema===t.dataset.sis?'':t.dataset.sis;save();openEd(EI,true);return}
+  if(t.dataset.ape){p.apertura=p.apertura===t.dataset.ape?'':t.dataset.ape;save();openEd(EI,true);return}
+  if(t.dataset.etic){p.etichetta=p.etichetta===t.dataset.etic?'':t.dataset.etic;save();openEd(EI,true);return}
+  if(t.dataset.dis){p.disegno=t.dataset.dis;save();openEd(EI,true);return}
+  if(t.dataset.pane!==undefined){const ps=p.disegno.split('|'),i=+t.dataset.pane;ps[i]=ORDINE[(ORDINE.indexOf(ps[i])+1)%ORDINE.length];p.disegno=ps.join('|');save();openEd(EI,true);return}
+  if(t.dataset.anta){const ps=p.disegno.split('|');if(t.dataset.anta==='+'&&ps.length<4)ps.push('F');if(t.dataset.anta==='-'&&ps.length>1)ps.pop();p.disegno=ps.join('|');save();openEd(EI,true);return}
+  if(t.dataset.esito){p.coll.esito=t.dataset.esito;save();openEd(EI,true);return}
+  if(t.dataset.rap){p.note=(p.note?p.note.replace(/[ .]+$/,'')+'. ':'')+t.dataset.rap+'.';save();openEd(EI,true);return}
+  if(t.dataset.al){const a=p.ale[t.dataset.al]||(p.ale[t.dataset.al]={t:''}),ord=['','0','AL','ALn','N'];a.t=ord[(ord.indexOf(a.t)+1)%5];if(a.t!=='ALn'&&a.t!=='N')delete a.n;save();openEd(EI,true);return}
+  if(t.dataset.chk){const m=M(),k=p.chk[m]=p.chk[m]||{},w=t.dataset.chk;
+    if(w==='c1'){k.c1=!k.c1;if(!k.c1){k.c2=false;k.c3=false}}
+    else if(w==='c2'&&k.c1){k.c2=!k.c2;if(!k.c2)k.c3=false}
+    else if(w==='c3'&&k.c2){k.c3=!k.c3}
+    save();openEd(EI,true);return}
+});
+document.addEventListener('change',e=>{
+  const d=e.target.dataset||{};
+  if(EI!==-1&&(d.p||d.aln||d.tn)){applyField(e.target);return}
+  if(e.target.id==='selC'){S.cur=e.target.value;save();render()}
+  if(d.h){C()[d.h]=e.target.value;save();if(d.h==='cliente')renderBar()}
+  if(e.target.id==='fCant'&&e.target.files.length){const fl=[...e.target.files];e.target.value='';const js=fl.find(f=>/\.json$/i.test(f.name)),altri=fl.filter(f=>f!==js);
+    const lavora=async x=>{let k=null,c=C();if(x){k=importaCantiere(x);c=C()}let n=0;for(const f of altri){try{await salvaFile(c.id,f);n++}catch(er){}}
+      alert((k?'Cantiere aperto: '+k.nome+'\nPosizioni: '+k.tot+' ('+k.nuove+' nuove, '+k.agg+' aggiornate dal contratto)\n':'')+'Piantine salvate nell\'app: '+n)};
+    if(js){const r=new FileReader();r.onload=()=>{let x;try{x=JSON.parse(r.result)}catch(err){alert('File non valido');return}lavora(x).catch(()=>alert('File non valido'))};r.readAsText(js)}else lavora(null).catch(()=>alert('Non riesco a salvare i file'));return}
+  if(e.target.id==='fPian'&&e.target.files.length){const fl=[...e.target.files],c=C();e.target.value='';Promise.all(fl.map(f=>salvaFile(c.id,f))).then(()=>openPiantina()).catch(()=>alert('Non riesco a salvare il file nell\'app'));return}
+  if(e.target.id==='fImp'&&e.target.files[0]){const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(x.commesse){S=x;save();render()}else alert('File non valido')}catch(err){alert('File non valido')}};r.readAsText(e.target.files[0])}
+});
+document.getElementById('ov').addEventListener('click',e=>{if(e.target.id==='ov')closeEd()});
+
+/* ---------- firma ---------- */
+function iniFirma(){
+  const cv=document.getElementById('fir'),x=cv.getContext('2d'),c=C();x.lineWidth=2;x.lineCap='round';
+  if(c.firma){const im=new Image();im.onload=()=>x.drawImage(im,0,0);im.src=c.firma}
+  let d=false;const pt=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]};
+  cv.onpointerdown=e=>{d=true;const[a,b]=pt(e);x.beginPath();x.moveTo(a,b);cv.setPointerCapture(e.pointerId)};
+  cv.onpointermove=e=>{if(!d)return;const[a,b]=pt(e);x.lineTo(a,b);x.stroke()};
+  cv.onpointerup=()=>{if(d){d=false;c.firma=cv.toDataURL();save()}};
+}
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+render();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{})})}
+</script>
+</body>
+</html>
