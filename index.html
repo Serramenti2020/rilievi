@@ -101,7 +101,7 @@ button{cursor:pointer}
 
 <script>
 "use strict";
-const VERSIONE='v06';
+const VERSIONE='v07';
 /* Nomi dei modelli: R1 Rilievo, E1 Esecutivo, M1 Monoblocco, T1 Controtelai, C1 Collaudo */
 const MODELLI=[['ril','R1 Rilievo'],['esec','E1 Esecutivo'],['mono','M1 Monoblocco'],['ctel','T1 Controtelai'],['coll','C1 Collaudo']];
 const LS='rilievi_corrado_v2';
@@ -173,7 +173,7 @@ function renderBar(){
    '<span class="ver">Rilievi '+VERSIONE+'</span><select id="selC">'+S.commesse.map(x=>'<option value="'+x.id+'"'+(x.id===c.id?' selected':'')+'>'+esc(x.cliente||'(senza nome)')+'</option>').join('')+'</select>'+
    '<button id="nuovaC">+ Cliente</button>'+
    MODELLI.map(m=>'<button class="tab'+(m[0]===M()?' on':'')+'" data-m="'+m[0]+'">'+m[1]+'</button>').join('')+
-   '<button id="bApri">Apri cantiere</button><button id="bPian">Piantina</button><button id="bPronto" class="pri">Pronto per uscire</button><span class="sp"></span><button id="bEsc">Esporta cantiere</button><button id="bPrint">Stampa / PDF</button><button id="bExp">Esporta</button><button id="bImp">Importa</button>'+
+   '<button id="bCant" class="pri">Cantieri</button><button id="bApri">Apri da file</button><button id="bPian">Piantina</button><button id="bPronto" class="pri">Pronto per uscire</button><span class="sp"></span><button id="bInv" class="pri">Invia al CRM</button><button id="bEsc">Esporta cantiere</button><button id="bPrint">Stampa / PDF</button><button id="bExp">Esporta</button><button id="bImp">Importa</button>'+
    '<input type="file" id="fImp" accept=".json" hidden><input type="file" id="fCant" accept=".json,application/pdf,image/*" multiple hidden><input type="file" id="fPian" accept="application/pdf,image/*" multiple hidden>';
 }
 function chkHtml(p){const k=p.chk[M()]||{};return '<span class="ks"><span class="k'+(k.c1?' on':'')+'">X</span><span class="k'+(k.c2?' on':'')+'">&#9711;</span><span class="k'+(k.c3?' on':'')+'">_</span></span>'}
@@ -290,6 +290,9 @@ function openNuova(){
   ed.innerHTML=h;ed.scrollTop=0;document.getElementById('foot').innerHTML='<button id="eOk">Annulla</button>';document.getElementById('ov').classList.add('on');
 }
 /* ---------- file nell'app (piantine): restano sul tablet anche senza rete e senza Drive ---------- */
+/* ponte con Drive (Rilievi API): elenco cantieri, scarico con un tocco, invio del rilievo. Il codice di accesso si scrive una volta sola e resta nel tablet. */
+const API='https://script.google.com/macros/s/AKfycbzgAUSt_weMxwcx3vXC2iTHWvmoWaTn7-Q2HO3vzYiXxUZttYjKYTyFvD8Ec56LCum1bQ/exec';
+const codice=()=>{try{return localStorage.getItem('rilievi_codice')||''}catch(e){return ''}};
 const MEM=new Map();
 const DBF={
   open(){if(typeof indexedDB==='undefined')return Promise.resolve(null);if(this.p)return this.p;this.p=new Promise((ok,ko)=>{const r=indexedDB.open('rilievi_files',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error)});return this.p},
@@ -319,7 +322,7 @@ async function openPronto(){
   h+=riga(pers==='sì','Memoria dell\'app protetta: <b>'+pers+'</b>'+(pers==='sì'?'':'. Non cancellare i dati di Chrome e non usare la navigazione in incognito.'));
   h+='<div class="hint">Rete adesso: '+(navigator.onLine?'presente':'assente')+(c.importato?'. Cantiere aperto il '+esc(c.importato.slice(0,10)):'')+'.</div>';
   h+='<div class="box" style="font-size:18px;text-align:center;margin-top:10px"><b>'+(tutto?'Tutto pronto: puoi lavorare senza rete.':'Manca qualcosa: controlla le righe con ✗.')+'</b></div>';
-  ed.innerHTML=h;ed.scrollTop=0;document.getElementById('foot').innerHTML='<button class="pri" id="eOk">Chiudi</button>';document.getElementById('ov').classList.add('on');
+  ed.innerHTML=h;ed.scrollTop=0;document.getElementById('foot').innerHTML=(codice()?'<button id="bScTutti2">Scarica i cantieri pronti</button>':'')+'<button class="pri" id="eOk">Chiudi</button>';document.getElementById('ov').classList.add('on');
 }
 function importaCantiere(x){
   if(!x||!Array.isArray(x.posizioni))throw new Error('File non valido');
@@ -341,10 +344,55 @@ function importaCantiere(x){
   S.cur=c.id;S.modello='ril';save();render();
   return {nuove,agg,tot:c.pos.length,nome:c.cliente,id:c.id};
 }
-function esportaCantiere(){
+function datiCantiere(){
   const c=C(),o={formato:1,tipo:'ritorno',numero:c.rif,cliente:c.cliente,luogo:c.luogo,contratto:c.contratto||'',esportato:new Date().toISOString(),data:c.data,colore:c.colore,tipologia:c.tipologia,consegna:c.consegna,piantine:c.piantine||[],trasp:T(c),posizioni:c.pos};
   const nome='rilievo_'+String(c.rif||'').replace(/\W+/g,'_')+'_'+String(c.cliente||'').replace(/\W+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.json';
-  const b=new Blob([JSON.stringify(o,null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nome;a.click();
+  return {o,nome};
+}
+function esportaCantiere(){
+  const d=datiCantiere(),b=new Blob([JSON.stringify(d.o,null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=d.nome;a.click();
+}
+async function apiChiama(opz){
+  const k=codice();if(!k)throw new Error('nocodice');
+  let r;
+  if(opz.post)r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({k},opz.post))});
+  else r=await fetch(API+'?'+new URLSearchParams(Object.assign({k},opz.get)).toString());
+  const j=await r.json();
+  if(j&&j.errore==='codice'){try{localStorage.removeItem('rilievi_codice')}catch(e){}throw new Error('codicesbagliato')}
+  if(!j||!j.ok)throw new Error((j&&j.errore)||'errore');
+  return j;
+}
+function fileDaB64(x){const bin=atob(x.b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new File([u],x.name,{type:x.type})}
+async function scaricaCantiere(nome){
+  const r=await apiChiama({get:{a:'cantiere',n:nome}}),k=importaCantiere(r.json);let n=0;
+  for(const x of (r.file||[])){await salvaFile(k.id,fileDaB64(x));n++}
+  return {nome:k.nome,pos:k.tot,piantine:n};
+}
+function messaggioErrore(e){const m=String(e&&e.message||e);if(m==='nocodice'||m==='codicesbagliato')return 'Serve il codice di accesso (scrivilo qui sotto).';return 'Non riesco a collegarmi: servono internet e un attimo di pazienza. Il lavoro già scaricato resta nel tablet.'}
+async function openCantieri(msg){
+  EI=-6;const ed=document.getElementById('ed');let h='<h3>Cantieri pronti</h3>';
+  if(!codice()){
+    h+=(msg?'<div class="box" style="color:#b00">'+esc(msg)+'</div>':'')+'<div class="hint">Scrivi una volta sola il codice di accesso (te l\'ha dato Corrado). Resta nel tablet.</div><label class="f">Codice<input id="codIn" autocomplete="off" autocapitalize="none" placeholder="xxxx-xxxx-xxxx"></label>';
+    ed.innerHTML=h;document.getElementById('foot').innerHTML='<button id="eOk">Chiudi</button><button class="pri" id="bCodice">Salva il codice</button>';document.getElementById('ov').classList.add('on');return;
+  }
+  ed.innerHTML=h+'<div class="hint">Cerco i cantieri... (la prima volta può volerci qualche secondo)</div>';document.getElementById('foot').innerHTML='<button id="eOk">Chiudi</button>';document.getElementById('ov').classList.add('on');
+  try{
+    const r=await apiChiama({get:{a:'elenco'}});if(EI!==-6)return;
+    const loc=n=>S.commesse.find(c=>c.rif===n.numero&&c.cliente===n.cliente);
+    h+=r.cantieri.length?r.cantieri.map(n=>{const l=loc(n);return '<div class="box" style="margin:6px 0"><b>'+esc(n.cliente)+'</b> '+esc(n.numero)+(n.contratto?' ('+esc(n.contratto)+')':'')+'<br><span class="hint">'+esc(n.luogo)+' · '+n.posizioni+' posizioni · '+n.file.length+' file</span><div class="chips" style="margin-top:6px">'+chip(0,'data-sc="'+esc(n.nome)+'"',l?'Scarica di nuovo':'Scarica')+(l?'<span class="hint" style="align-self:center">✓ già nel tablet</span>':'')+'</div></div>'}).join(''):'<div class="hint">Nessun cantiere pronto. Il CRM li prepara dal contratto.</div>';
+    ed.innerHTML=h;ed.scrollTop=0;document.getElementById('foot').innerHTML='<button id="bCodice2">Cambia codice</button><button id="eOk">Chiudi</button>'+(r.cantieri.length?'<button class="pri" id="bScTutti">Scarica tutti</button>':'');
+    window.__elenco=r.cantieri;
+  }catch(e){if(EI!==-6)return;ed.innerHTML=h+'<div class="box" style="color:#b00">'+esc(messaggioErrore(e))+'</div>';if(!codice()){openCantieri(messaggioErrore(e))}}
+}
+async function scaricaTutti(){
+  const el=window.__elenco||(await apiChiama({get:{a:'elenco'}})).cantieri;let ok=0,ko=0,righe=[];
+  for(const n of el){try{const x=await scaricaCantiere(n.nome);ok++;righe.push(x.nome+': '+x.pos+' posizioni, '+x.piantine+' piantine')}catch(e){ko++;righe.push(n.nome+': non scaricato')}}
+  alert('Scaricati '+ok+(ko?', con problemi '+ko:'')+'\n'+righe.join('\n'));
+}
+async function inviaCantiere(){
+  const d=datiCantiere();
+  try{const r=await apiChiama({post:{a:'ritorno',nome:d.nome,dati:d.o}});alert('Inviato al CRM: '+r.nome)}
+  catch(e){const m=String(e&&e.message||e);if(m==='nocodice'||m==='codicesbagliato'){openCantieri('Per inviare serve il codice di accesso.');return}alert('Non riesco a inviare (manca la rete?). Il rilievo resta nel tablet: riprova con la rete, oppure usa Esporta cantiere.')}
 }
 /* ---------- trasporto e scarico (per cliente) ---------- */
 function openTrasp(keep){
@@ -390,6 +438,12 @@ document.addEventListener('click',e=>{
   if(t.id==='bEsc'){esportaCantiere();return}
   if(t.id==='bPian'){openPiantina();return}
   if(t.id==='bPronto'){openPronto();return}
+  if(t.id==='bCant'){openCantieri();return}
+  if(t.id==='bInv'){inviaCantiere();return}
+  if(t.id==='bCodice'){const v=(document.getElementById('codIn')||{}).value||'';if(v.trim()){try{localStorage.setItem('rilievi_codice',v.trim())}catch(e){}}openCantieri();return}
+  if(t.id==='bCodice2'){try{localStorage.removeItem('rilievi_codice')}catch(e){}openCantieri();return}
+  if(t.id==='bScTutti'||t.id==='bScTutti2'){const dopo=t.id==='bScTutti2'?openPronto:openCantieri;scaricaTutti().then(()=>dopo()).catch(e=>alert(messaggioErrore(e)));return}
+  if(t.dataset.sc){const nm=t.dataset.sc;t.textContent='Scarico...';scaricaCantiere(nm).then(x=>{alert('Scaricato: '+x.nome+'\nPosizioni: '+x.pos+'\nPiantine salvate nell\'app: '+x.piantine);openCantieri()}).catch(e=>{alert(messaggioErrore(e));openCantieri()});return}
   if(t.dataset.pf){DBF.lista(C().id).then(l=>{const r=l.find(x=>x.name===t.dataset.pf);if(r)mostraFile(r)});return}
   if(t.id==='bScegli'){document.getElementById('fPian').click();return}
   if(t.id==='pvx'){document.getElementById('pv').classList.remove('on');return}
