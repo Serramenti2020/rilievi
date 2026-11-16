@@ -35,14 +35,18 @@ button{cursor:pointer}
 .cell .top b{font-size:13px;color:var(--ink)}
 .stz{font-size:12px;font-weight:400;color:#444;margin:0 6px}
 .cell .nt{font-size:12px;color:#333}
-.cell .pos{margin-top:auto;font-size:13px;color:#333;padding-top:4px;padding-right:76px}
+.cell .pos{margin-top:auto;font-size:13px;color:#333;padding-top:4px;padding-right:34px}
 .cell .pos b{font-size:16px}
 #pv{position:fixed;inset:0;background:#fff;z-index:60;display:none;overflow:auto}
 #pv.on{display:block}
 #pv img{width:100%;max-width:none;display:block}
 #pvx{position:fixed;top:8px;right:8px;z-index:61;min-height:44px;padding:0 14px;font-size:16px}
 .avv{display:block;color:#b00;font-weight:600;font-size:12px}
-.spm{position:absolute;top:28px;right:8px;font-size:12px;transform:rotate(-20deg);font-weight:600}
+.sv{position:relative;display:inline-block;line-height:0}
+.sv svg{display:block}
+.spm{position:absolute;top:-2px;right:-6px;font-size:12px;line-height:1.1;white-space:nowrap;transform-origin:left bottom;transform:rotate(-45deg);font-weight:600}
+.apt{position:absolute;top:34px;left:100%;margin-left:6px;font-size:13px;line-height:1.1;font-weight:700;color:var(--ink);white-space:nowrap}
+.qtd{position:absolute;top:-4px;right:100%;margin-right:4px;font-size:12px;line-height:1.1;font-weight:700;white-space:nowrap}
 .qta{font-weight:700}
 .sis{border:1px solid #888;border-radius:6px;padding:0 5px;font-size:12px}
 .etich{background:var(--hi);border:1px solid #e0c870;border-radius:8px;padding:0 7px;font-size:12px;text-transform:uppercase}
@@ -52,7 +56,7 @@ button{cursor:pointer}
 .cell .m{text-align:center}
 .m{font-family:ui-monospace,Consolas,monospace;font-size:13px}
 .pre{color:var(--mut);text-decoration:line-through;font-size:12px}
-.ks{position:absolute;bottom:6px;right:6px;display:flex;gap:2px}
+.ks{position:absolute;bottom:6px;right:6px;display:flex;flex-direction:column;gap:2px}
 .k{width:20px;height:20px;border:1px solid var(--line);border-radius:50%;font-size:12px;display:grid;place-items:center;color:var(--line)}
 .k.on{color:#fff;background:var(--ok);border-color:var(--ok)}
 .firma{border:1px solid var(--ink);background:#fff;touch-action:none;width:100%;max-width:500px;height:140px;display:block}
@@ -102,7 +106,7 @@ button{cursor:pointer}
 
 <script>
 "use strict";
-const VERSIONE='v08';
+const VERSIONE='v09';
 /* Nomi dei modelli: R1 Rilievo, E1 Esecutivo, M1 Monoblocco, T1 Controtelai, C1 Collaudo */
 const MODELLI=[['ril','R1 Rilievo'],['esec','E1 Esecutivo'],['mono','M1 Monoblocco'],['ctel','T1 Controtelai'],['coll','C1 Collaudo']];
 const LS='rilievi_corrado_v2';
@@ -182,12 +186,17 @@ function cellMis(p,m){
   const pf=m==='esec'?'esec':'ril',o=p[pf],a=p.ale,pre=k=>p.prev[pf+'.'+k]!==undefined?' <span class="pre">'+fmt(p.prev[pf+'.'+k])+'</span>':'';
   let h='';
   if(o.BF!==undefined||o.BL!==undefined)h+='<div class="m">BF '+fmt(o.BF)+'&emsp;BL '+fmt(o.BL)+'</div>';
-  h+='<div class="dw"><div class="vt m">'+(o.H!==undefined?alS(a.giu)+' + '+fmt(o.H)+' + '+alS(a.su)+pre('H'):'')+'</div>'+svgTipo(p.disegno,70,84)+'</div>';
+  const sv='<span class="sv">'+svgTipo(p.disegno,70,84)+(o.spMuro!==undefined?'<span class="spm">sp. '+fmt(o.spMuro)+'</span>':'')+(p.apertura?'<span class="apt">'+esc(p.apertura)+'</span>':'')+(p.qta?'<span class="qtd">N° '+esc(p.qta)+'</span>':'')+'</span>';
+  h+='<div class="dw"><div class="vt m">'+(o.H!==undefined?alS(a.giu)+' + '+fmt(o.H)+' + '+alS(a.su)+pre('H'):'')+'</div>'+sv+'</div>';
   if(o.L!==undefined)h+='<div class="m">'+alS(a.sx)+' + '+fmt(o.L)+' + '+alS(a.dx)+pre('L')+'</div>';
   if(o.LST!==undefined||o.HST!==undefined)h+='<div class="m">LST '+fmt(o.LST)+'&emsp;HST '+fmt(o.HST)+'</div>';
-  if(o.spMuro!==undefined)h+='<div class="spm">sp. '+fmt(o.spMuro)+'</div>';
-  if(o.Lmax!==undefined||o.Hmax!==undefined)h+='<div class="m">Lmax '+fmt(o.Lmax)+'&emsp;Hmax '+fmt(o.Hmax)+'</div>';
   return h;
+}
+function cellTop(p,m){
+  const ril=m==='ril'||m==='esec',o=p[m==='esec'?'esec':'ril'];
+  const mx=ril&&(o.Lmax!==undefined||o.Hmax!==undefined)?'<span class="m" style="font-size:12px;color:#333">Lmax '+fmt(o.Lmax)+'&emsp;Hmax '+fmt(o.Hmax)+'</span>':'';
+  const ap=ril?'':(p.apertura?'<b>'+esc(p.apertura)+'</b>':'');
+  return '<div class="top"><span>'+(p.sistema?esc(p.sistema):'&nbsp;')+'</span>'+mx+ap+'</div>';
 }
 function cellBody(p){
   const m=M();let mid='';
@@ -196,8 +205,8 @@ function cellBody(p){
   else if(m==='mono')mid=(p.mono.L!==undefined||p.mono.H!==undefined?'<div class="m" style="font-size:16px">'+fmt(p.mono.L)+' x '+fmt(p.mono.H)+'</div>':'')+mis(p.mono,MIS_MONO.slice(2));
   else if(m==='ctel')mid=(p.ctel.L!==undefined||p.ctel.H!==undefined?'<div class="m" style="font-size:16px">'+fmt(p.ctel.L)+' x '+fmt(p.ctel.H)+'</div>':'')+mis(p.ctel,MIS_CTEL.slice(2))+diffHtml(p,true);
   else if(m==='coll'){const c=p.coll;mid='<div class="dw">'+svgTipo(p.disegno,60,70)+'</div>'+(p.esec.L!==undefined?'<div class="m">'+alS(p.ale.sx)+' + '+fmt(p.esec.L)+' + '+alS(p.ale.dx)+'</div>':'')+(c.esito?'<div style="text-align:center"><b>'+esc(c.esito)+'</b></div>':'')+(c.L!==undefined||c.H!==undefined?'<div class="m">rilevato '+fmt(c.L)+' x '+fmt(c.H)+'</div>':'')+(c.mod?'<div class="nt">'+esc(c.mod)+'</div>':'')}
-  return chkHtml(p)+'<div class="top"><span>'+(p.sistema?esc(p.sistema):'&nbsp;')+'</span><b>'+(p.apertura?esc(p.apertura):'')+'</b></div>'+(p.note&&m!=='coll'?'<div class="nt">'+esc(p.note)+'</div>':'')+mid+
-    '<div class="pos"><b>'+esc(p.id)+'</b>'+(p.stanza?'<span class="stz">'+esc(p.stanza)+'</span>':' ')+(p.qta?' <span class="qta">N° '+esc(p.qta)+'</span>':'')+(p.etichetta?' <span class="etich">'+esc(p.etichetta)+'</span>':'')+((p.verifica&&p.verifica.length&&!p.vOk)?' <b style="color:#b00">?</b>':'')+(avvisiPos(p).length?' <b style="color:#b00" title="misura fuori limite">!</b>':'')+'</div>';
+  return chkHtml(p)+cellTop(p,m)+(p.note&&m!=='coll'?'<div class="nt">'+esc(p.note)+'</div>':'')+mid+
+    '<div class="pos"><b>'+esc(p.id)+'</b>'+(p.stanza?'<span class="stz">'+esc(p.stanza)+'</span>':' ')+(p.qta&&m!=='ril'&&m!=='esec'?' <span class="qta">N° '+esc(p.qta)+'</span>':'')+(p.etichetta?' <span class="etich">'+esc(p.etichetta)+'</span>':'')+((p.verifica&&p.verifica.length&&!p.vOk)?' <b style="color:#b00">?</b>':'')+(avvisiPos(p).length?' <b style="color:#b00" title="misura fuori limite">!</b>':'')+'</div>';
 }
 function traspS(c){const t=T(c),r=[];if(t.piano)r.push('Piano '+t.piano);if(t.mezzi.length)r.push('Scarico: '+t.mezzi.join(', '));if(t.gru)r.push('Gru: '+t.gru);if(t.diff)r.push('Difficoltà: '+t.diff);if(t.note)r.push(t.note);return r.join(' | ')}
 function renderWrap(){
@@ -246,7 +255,7 @@ function openEd(i,keep){
   if(p.descrizione||p.tipo){h+='<div class="box" style="margin-top:8px"><b>Dal contratto:</b> '+esc(p.descrizione||p.tipo)+((p.complementi&&p.complementi.length)?'<br>Con: '+esc(p.complementi.join('; ')):'')+((p.verifica&&p.verifica.length)?'<br><b style="color:#b00">Da verificare:</b> '+esc(p.verifica.join('; '))+'<div class="chips" style="margin-top:6px">'+chip(p.vOk,'data-vok="1"','Verificato')+'</div>':'')+'</div>'}
   h+='<div class="row" style="margin-top:8px"><label class="f" style="flex:0 0 150px">Quantità (N°)<input data-p="qta" value="'+esc(p.qta)+'" placeholder="2 oppure 1 DX 1 SX"></label><label class="f">Sistema (in alto a sinistra)<input data-p="sistema" value="'+esc(p.sistema)+'" placeholder="S44, EVO2..."></label></div>';
   h+='<div class="chips">'+SISTEMI.map(s=>chip(p.sistema===s,'data-sis="'+s+'"',s)).join('')+'</div>';
-  h+='<h3>Senso di apertura (in alto a destra)</h3><div class="chips">'+APERTURE.map(a=>chip(p.apertura===a[0],'data-ape="'+a[0]+'"',a[0]+' '+a[1])).join('')+'</div>';
+  h+='<h3>Senso di apertura (a destra del disegno)</h3><div class="chips">'+APERTURE.map(a=>chip(p.apertura===a[0],'data-ape="'+a[0]+'"',a[0]+' '+a[1])).join('')+'</div>';
   h+='<h3>Disegno</h3><div class="dis">'+svgTipo(p.disegno,150,190,true)+'<div><div class="chips">'+chip(0,'data-anta="+"','+ anta')+chip(0,'data-anta="-"','- anta')+'</div><div class="hint">Tocca un\'anta per cambiarla: fisso F, anta &lt; o &gt;, scorrevole con freccia verso il centro.</div></div></div>'+
     '<div class="draw">'+DISEGNI.map(d=>'<button data-dis="'+d[0]+'" class="'+(p.disegno===d[0]?'on':'')+'">'+svgTipo(d[0],56,64)+'<div>'+d[1]+'</div></button>').join('')+'</div>';
   if(m==='ril'||m==='esec'){
@@ -272,7 +281,7 @@ function openEd(i,keep){
     h+='<h3>Note e rifiniture per i posatori</h3><div class="chips" style="margin-bottom:6px">'+RAPIDE.map(x=>chip(0,'data-rap="'+esc(x)+'"',x)).join('')+'</div><label class="f"><textarea data-p="note" placeholder="Scrivi liberamente">'+esc(p.note)+'</textarea></label>';
   }
   const k=p.chk[m]||{};
-  h+='<h3>Controlli (i tre cerchietti in basso a destra)</h3><div class="hint">1 X controllato, poi 2 ◯ controverifica sulla conferma d\'ordine, poi 3 _ tutto corretto. Ogni passo si accende solo dopo il precedente.</div><div class="chips">'+chip(k.c1,'data-chk="c1"','X Controllato')+chip(k.c2,'data-chk="c2"','◯ Controverifica conferma ordine')+chip(k.c3,'data-chk="c3"','_ Tutto corretto')+'</div>';
+  h+='<h3>Controlli (i tre cerchietti in basso a destra, in verticale)</h3><div class="hint">1 X controllato, poi 2 ◯ controverifica sulla conferma d\'ordine, poi 3 _ tutto corretto. Ogni passo si accende solo dopo il precedente.</div><div class="chips">'+chip(k.c1,'data-chk="c1"','X Controllato')+chip(k.c2,'data-chk="c2"','◯ Controverifica conferma ordine')+chip(k.c3,'data-chk="c3"','_ Tutto corretto')+'</div>';
   ed.innerHTML=h;ed.scrollTop=sc;
   document.getElementById('foot').innerHTML='<button class="del" id="eDel">Elimina</button><button class="pri" id="eOk">Fatto</button>';
   document.getElementById('ov').classList.add('on');
