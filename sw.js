@@ -1,6 +1,6 @@
 /* Service worker dell'app Rilievi: tiene l'app sul tablet così si apre anche senza rete.
    Per aggiornare l'app cambia VERSIONE_CACHE (stessa versione dell'app). Non salva dati dei clienti: quelli stanno nell'app (localStorage e IndexedDB). */
-const VERSIONE_CACHE = 'rilievi-v09';
+const VERSIONE_CACHE = 'rilievi-v11';
 const FILE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSIONE_CACHE).then(c => c.addAll(FILE)).then(() => self.skipWaiting()));

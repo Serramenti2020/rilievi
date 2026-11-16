@@ -106,7 +106,7 @@ button{cursor:pointer}
 
 <script>
 "use strict";
-const VERSIONE='v09';
+const VERSIONE='v11';
 /* Nomi dei modelli: R1 Rilievo, E1 Esecutivo, M1 Monoblocco, T1 Controtelai, C1 Collaudo */
 const MODELLI=[['ril','R1 Rilievo'],['esec','E1 Esecutivo'],['mono','M1 Monoblocco'],['ctel','T1 Controtelai'],['coll','C1 Collaudo']];
 const LS='rilievi_corrado_v2';
@@ -175,11 +175,11 @@ function svgTipo(code,w,h,inter){
 function renderBar(){
   const c=C();
   document.getElementById('bar').innerHTML=
-   '<span class="ver">Rilievi '+VERSIONE+'</span><select id="selC">'+S.commesse.map(x=>'<option value="'+x.id+'"'+(x.id===c.id?' selected':'')+'>'+esc(x.cliente||'(senza nome)')+'</option>').join('')+'</select>'+
+   '<span class="ver">Rilievi '+VERSIONE+'</span><select id="selC">'+S.commesse.map(x=>'<option value="'+x.id+'"'+(x.id===c.id?' selected':'')+'>'+esc(x.cliente||'(senza nome)')+(x.rif&&S.commesse.filter(k=>k.rif===x.rif).length>1?' · Rev '+revDi(x):'')+'</option>').join('')+'</select>'+
    '<button id="nuovaC">+ Cliente</button>'+
    MODELLI.map(m=>'<button class="tab'+(m[0]===M()?' on':'')+'" data-m="'+m[0]+'">'+m[1]+'</button>').join('')+
-   '<button id="bCant" class="pri">Cantieri</button><button id="bApri">Apri da file</button><button id="bPian">Piantina</button><button id="bPronto" class="pri">Pronto per uscire</button><span class="sp"></span><button id="bInv" class="pri">Invia al CRM</button><button id="bEsc">Esporta cantiere</button><button id="bPrint">Stampa / PDF</button><button id="bExp">Esporta</button><button id="bImp">Importa</button>'+
-   '<input type="file" id="fImp" accept=".json" hidden><input type="file" id="fCant" accept=".json,application/pdf,image/*" multiple hidden><input type="file" id="fPian" accept="application/pdf,image/*" multiple hidden>';
+   '<button id="bCant" class="pri">Cantieri</button><button id="bApri">Apri da file</button><button id="bPian">Piantina</button><button id="bArr" class="pri">Arrivo merce</button><button id="bPronto" class="pri">Pronto per uscire</button><span class="sp"></span><button id="bInv" class="pri">Invia al CRM</button><button id="bEsc">Esporta cantiere</button><button id="bPrint">Stampa / PDF</button><button id="bExp">Esporta</button><button id="bImp">Importa</button>'+
+   '<input type="file" id="fImp" accept=".json" hidden><input type="file" id="fCant" accept=".json,application/pdf,image/*" multiple hidden><input type="file" id="fPian" accept="application/pdf,image/*" multiple hidden><input type="file" id="fArr" accept="image/*" capture="environment" hidden>';
 }
 function chkHtml(p){const k=p.chk[M()]||{};return '<span class="ks"><span class="k'+(k.c1?' on':'')+'">X</span><span class="k'+(k.c2?' on':'')+'">&#9711;</span><span class="k'+(k.c3?' on':'')+'">_</span></span>'}
 function cellMis(p,m){
@@ -348,10 +348,17 @@ async function openPronto(){
   h+='<div class="box" style="font-size:18px;text-align:center;margin-top:10px"><b>'+(tutto?'Tutto pronto: puoi lavorare senza rete.':'Manca qualcosa: controlla le righe con ✗.')+'</b></div>';
   ed.innerHTML=h;ed.scrollTop=0;document.getElementById('foot').innerHTML=(codice()?'<button id="bScTutti2">Scarica i cantieri pronti</button>':'')+'<button class="pri" id="eOk">Chiudi</button>';document.getElementById('ov').classList.add('on');
 }
-function importaCantiere(x){
+/* Revisioni (decisione di Corrado, 16/11/2026): il cantiere si riconosce dal NUMERO (il nome può cambiare nel CRM). Se è già nel tablet l'app lo dice e non tocca niente:
+   decide chi misura se tenere quello che c'è o creare la Rev 2 (copia dell'ultima revisione, aggiornata col file nuovo; la vecchia resta intatta). */
+const revDi=k=>k.rev||1;
+function giaCaricato(x){const n=x&&x.numero;return n?S.commesse.filter(k=>k.rif===n):S.commesse.filter(k=>!k.rif&&k.cliente&&k.cliente===(x&&x.cliente))}
+const infoGia=g=>g.map(k=>({id:k.id,rev:revDi(k),cliente:k.cliente,importato:k.importato||''}));
+function importaCantiere(x,rev){
   if(!x||!Array.isArray(x.posizioni))throw new Error('File non valido');
-  let c=S.commesse.find(k=>k.rif&&k.rif===x.numero&&k.cliente===x.cliente);
-  if(!c){c=nuovaCommessa(x.cliente||'');c.pos=[];S.commesse.push(c)}
+  const g=giaCaricato(x);let c=null,daId=null;
+  if(g.length&&!rev)return {gia:infoGia(g)};
+  if(g.length){const base=g.reduce((a,k)=>revDi(k)>revDi(a)?k:a),mx=Math.max(...g.map(revDi));daId=base.id;c=JSON.parse(JSON.stringify(base));let nid='c'+Date.now();while(S.commesse.some(k=>k.id===nid))nid+='x';c.id=nid;c.rev=mx+1;c.firma='';S.commesse.push(c)}
+  else{c=nuovaCommessa(x.cliente||'');c.pos=[];c.rev=Number(x.revRilievo)||1;S.commesse.push(c)}
   c.rif=x.numero||c.rif;c.luogo=x.luogo||c.luogo;c.contratto=x.contratto||c.contratto||'';c.piantine=x.piantine||c.piantine||[];
   ['data','colore','tipologia','consegna'].forEach(k=>{if(x[k]&&!c[k])c[k]=x[k]});
   if(x.trasp)c.trasp=Object.assign(nuovaTrasp(),c.trasp||{},x.trasp);
@@ -366,11 +373,38 @@ function importaCantiere(x){
   });
   c.importato=new Date().toISOString();
   S.cur=c.id;S.modello='ril';save();render();
-  return {nuove,agg,tot:c.pos.length,nome:c.cliente,id:c.id};
+  return {nuove,agg,tot:c.pos.length,nome:c.cliente,id:c.id,rev:revDi(c),daId};
+}
+/* copia nella revisione nuova le piantine già salvate nel tablet (quelle non riscaricate) */
+async function copiaFile(da,a,gia){let n=0;try{const l=await DBF.lista(da);for(const f of l){if(gia.some(x=>String(x).toLowerCase()===f.name.toLowerCase()))continue;await DBF.put(a+'|'+f.name.toLowerCase(),f);n++}}catch(e){}return n}
+/* finestra «Già caricato»: la scelta è sempre di chi misura */
+let GIA=null;
+function openGia(g,onRev,onTieni){
+  GIA={onRev,onTieni};EI=-7;const ed=document.getElementById('ed'),mx=Math.max(...g.map(k=>k.rev));
+  ed.innerHTML='<h3>Già caricato nel tablet</h3><div class="box"><b>'+esc(g[0].cliente)+'</b><br>'+g.map(k=>'Rev '+k.rev+(k.importato?' (aperto il '+esc(k.importato.slice(0,10))+')':'')).join(' · ')+'</div>'+
+   '<div class="hint" style="margin-top:10px">Questo cantiere è già nel tablet, con le sue misure. Non ho cambiato niente. Scegli tu:</div>'+
+   '<div class="hint"><b>Tieni quello che c\'è</b>: resta tutto com\'è.<br><b>Crea la Rev '+(mx+1)+'</b>: copia l\'ultima revisione, la aggiorna con il file nuovo del contratto e lascia intatte le vecchie. Poi lavori su quella che preferisci (la scegli in alto, accanto al nome).</div>';
+  ed.scrollTop=0;document.getElementById('foot').innerHTML='<button id="gTieni">Tieni quello che c\'è</button><button class="pri" id="gRev">Crea la Rev '+(mx+1)+'</button>';document.getElementById('ov').classList.add('on');
+}
+/* «Importa»: non sostituisce più il tablet. Aggiunge i cantieri che non ci sono; per quelli già presenti (stesso numero) chiede, uno alla volta */
+function importaBackup(x){
+  let agg=0,presenti=0,rev=0;const conf=[];
+  x.commesse.filter(k=>k&&Array.isArray(k.pos)).forEach(k=>{
+    if(S.commesse.some(y=>y.id===k.id)){presenti++;return}
+    if(k.rif&&S.commesse.some(y=>y.rif===k.rif))conf.push(k);else{S.commesse.push(k);agg++}
+  });
+  save();render();
+  const fine=()=>{save();render();alert('Importato: '+agg+' cantieri aggiunti, '+rev+' revisioni create, '+presenti+' già presenti (non toccati).')};
+  const passo=i=>{
+    if(i>=conf.length){fine();return}
+    const k=conf[i],g=infoGia(S.commesse.filter(y=>y.rif===k.rif));
+    openGia(g,()=>{const mx=Math.max(...g.map(y=>y.rev));k.id='c'+Date.now()+'_'+i;k.rev=mx+1;S.commesse.push(k);rev++;passo(i+1)},()=>passo(i+1));
+  };
+  passo(0);
 }
 function datiCantiere(){
-  const c=C(),o={formato:1,tipo:'ritorno',numero:c.rif,cliente:c.cliente,luogo:c.luogo,contratto:c.contratto||'',esportato:new Date().toISOString(),data:c.data,colore:c.colore,tipologia:c.tipologia,consegna:c.consegna,piantine:c.piantine||[],trasp:T(c),posizioni:c.pos};
-  const nome='rilievo_'+String(c.rif||'').replace(/\W+/g,'_')+'_'+String(c.cliente||'').replace(/\W+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.json';
+  const c=C(),o={formato:1,tipo:'ritorno',numero:c.rif,cliente:c.cliente,luogo:c.luogo,contratto:c.contratto||'',esportato:new Date().toISOString(),revRilievo:revDi(c),data:c.data,colore:c.colore,tipologia:c.tipologia,consegna:c.consegna,piantine:c.piantine||[],trasp:T(c),posizioni:c.pos};
+  const nome='rilievo_'+String(c.rif||'').replace(/\W+/g,'_')+'_'+String(c.cliente||'').replace(/\W+/g,'_')+(revDi(c)>1?'_Rev'+revDi(c):'')+'_'+new Date().toISOString().slice(0,10)+'.json';
   return {o,nome};
 }
 function esportaCantiere(){
@@ -387,10 +421,13 @@ async function apiChiama(opz){
   return j;
 }
 function fileDaB64(x){const bin=atob(x.b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new File([u],x.name,{type:x.type})}
-async function scaricaCantiere(nome){
-  const r=await apiChiama({get:{a:'cantiere',n:nome}}),k=importaCantiere(r.json);let n=0;
+async function scaricaCantiere(nome,rev){
+  const r=await apiChiama({get:{a:'cantiere',n:nome}}),k=importaCantiere(r.json,rev);
+  if(k.gia)return k;
+  let n=0;
   for(const x of (r.file||[])){await salvaFile(k.id,fileDaB64(x));n++}
-  return {nome:k.nome,pos:k.tot,piantine:n};
+  if(k.daId)n+=await copiaFile(k.daId,k.id,(r.file||[]).map(x=>x.name));
+  return {nome:k.nome,pos:k.tot,piantine:n,rev:k.rev};
 }
 function messaggioErrore(e){const m=String(e&&e.message||e);if(m==='nocodice'||m==='codicesbagliato')return 'Serve il codice di accesso (scrivilo qui sotto).';return 'Non riesco a collegarmi: servono internet e un attimo di pazienza. Il lavoro già scaricato resta nel tablet.'}
 async function openCantieri(msg){
@@ -402,15 +439,15 @@ async function openCantieri(msg){
   ed.innerHTML=h+'<div class="hint">Cerco i cantieri... (la prima volta può volerci qualche secondo)</div>';document.getElementById('foot').innerHTML='<button id="eOk">Chiudi</button>';document.getElementById('ov').classList.add('on');
   try{
     const r=await apiChiama({get:{a:'elenco'}});if(EI!==-6)return;
-    const loc=n=>S.commesse.find(c=>c.rif===n.numero&&c.cliente===n.cliente);
-    h+=r.cantieri.length?r.cantieri.map(n=>{const l=loc(n);return '<div class="box" style="margin:6px 0"><b>'+esc(n.cliente)+'</b> '+esc(n.numero)+(n.contratto?' ('+esc(n.contratto)+')':'')+'<br><span class="hint">'+esc(n.luogo)+' · '+n.posizioni+' posizioni · '+n.file.length+' file</span><div class="chips" style="margin-top:6px">'+chip(0,'data-sc="'+esc(n.nome)+'"',l?'Scarica di nuovo':'Scarica')+(l?'<span class="hint" style="align-self:center">✓ già nel tablet</span>':'')+'</div></div>'}).join(''):'<div class="hint">Nessun cantiere pronto. Il CRM li prepara dal contratto.</div>';
+    const loc=n=>{const g=S.commesse.filter(c=>n.numero&&c.rif===n.numero);return g.length?Math.max(...g.map(revDi)):0};
+    h+=r.cantieri.length?r.cantieri.map(n=>{const l=loc(n);return '<div class="box" style="margin:6px 0"><b>'+esc(n.cliente)+'</b> '+esc(n.numero)+(n.contratto?' ('+esc(n.contratto)+')':'')+'<br><span class="hint">'+esc(n.luogo)+' · '+n.posizioni+' posizioni · '+n.file.length+' file</span><div class="chips" style="margin-top:6px">'+chip(0,'data-sc="'+esc(n.nome)+'"',l?'Già caricato: aggiorna...':'Scarica')+(l?'<span class="hint" style="align-self:center">✓ già nel tablet (Rev '+l+')</span>':'')+'</div></div>'}).join(''):'<div class="hint">Nessun cantiere pronto. Il CRM li prepara dal contratto.</div>';
     ed.innerHTML=h;ed.scrollTop=0;document.getElementById('foot').innerHTML='<button id="bCodice2">Cambia codice</button><button id="eOk">Chiudi</button>'+(r.cantieri.length?'<button class="pri" id="bScTutti">Scarica tutti</button>':'');
     window.__elenco=r.cantieri;
   }catch(e){if(EI!==-6)return;ed.innerHTML=h+'<div class="box" style="color:#b00">'+esc(messaggioErrore(e))+'</div>';if(!codice()){openCantieri(messaggioErrore(e))}}
 }
 async function scaricaTutti(){
   const el=window.__elenco||(await apiChiama({get:{a:'elenco'}})).cantieri;let ok=0,ko=0,righe=[];
-  for(const n of el){try{const x=await scaricaCantiere(n.nome);ok++;righe.push(x.nome+': '+x.pos+' posizioni, '+x.piantine+' piantine')}catch(e){ko++;righe.push(n.nome+': non scaricato')}}
+  for(const n of el){try{const x=await scaricaCantiere(n.nome);if(x.gia){righe.push(n.nome+': già caricato, non toccato');continue}ok++;righe.push(x.nome+': '+x.pos+' posizioni, '+x.piantine+' piantine')}catch(e){ko++;righe.push(n.nome+': non scaricato')}}
   alert('Scaricati '+ok+(ko?', con problemi '+ko:'')+'\n'+righe.join('\n'));
 }
 async function inviaCantiere(){
@@ -418,6 +455,122 @@ async function inviaCantiere(){
   if(av.length&&!confirm('Ci sono '+av.length+' misure fuori limite:\n'+av.slice(0,8).join('\n')+'\nInvio lo stesso?'))return;
   try{const r=await apiChiama({post:{a:'ritorno',nome:d.nome,dati:d.o}});alert('Inviato al CRM: '+r.nome)}
   catch(e){const m=String(e&&e.message||e);if(m==='nocodice'||m==='codicesbagliato'){openCantieri('Per inviare serve il codice di accesso.');return}alert('Non riesco a inviare (manca la rete?). Il rilievo resta nel tablet: riprova con la rete, oppure usa Esporta cantiere.')}
+}
+/* ---------- Arrivo merce (16/11/2026): foto delle packing list, lettura sul PC, confronto con l'ordine. Mirko non entra mai nel CRM: tutto passa da Rilievi_cantieri ----------
+   L'ufficio prepara l'arrivo dal CRM («Prepara per il tablet»): sul tablet compare il cliente con le posizioni attese (senza prezzi). Si fotografa ogni foglio, il PC legge le foto (2-4 minuti),
+   qui si vede cosa è arrivato e cosa manca, si correggono gli errori di lettura e si preme «Confermo l'arrivo». Una mancanza è definitiva solo dopo la conferma. */
+const arrNorm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+function arrOrdineDi(rif,ordini){const r=arrNorm(rif);let best=-1,lun=0;(ordini||[]).forEach((o,i)=>{const n=arrNorm(o.riferimento);if(n.length<5||r.length<5)return;if((r.indexOf(n)===0||n.indexOf(r)===0)&&n.length>lun){best=i;lun=n.length}});return best}
+function arrConfronta(ordini,righe,tol){
+  tol=tol||3;
+  const out=(ordini||[]).map(o=>({file:o.file,riferimento:o.riferimento,leggibile:!!o.leggibile,posizioni:(o.posizioni||[]).map(p=>({pos:p.pos,L:p.L,H:p.H,q:p.q,arrivati:0,diversi:0,stato:'',note:''})),extra:[],righe:0})),nonAbbinate=[];
+  (righe||[]).forEach(r=>{
+    const i=arrOrdineDi(r.rif,ordini);if(i<0){nonAbbinate.push(r);return}
+    const o=out[i];o.righe++;const p=o.posizioni.filter(x=>Number(x.pos)===Number(r.pos))[0];
+    if(!p){o.extra.push(r);return}
+    const ok=Math.abs(Number(r.L)-p.L)<=tol&&Math.abs(Number(r.H)-p.H)<=tol;
+    if(ok)p.arrivati+=Number(r.pz)||0;else{p.diversi+=Number(r.pz)||0;p.note='misure lette '+r.L+' x '+r.H+', ordine '+p.L+' x '+p.H}
+  });
+  out.forEach(o=>o.posizioni.forEach(p=>{
+    if(p.q===null||p.q===undefined)p.stato='da_verificare';else if(p.arrivati===p.q)p.stato='arrivata';else if(p.arrivati>p.q)p.stato='in_piu';else if(p.arrivati>0)p.stato='parziale';else if(p.diversi>0)p.stato='misure_diverse';else p.stato='manca';
+  }));
+  return {ordini:out,nonAbbinate};
+}
+function arrPulisci(righe){return (righe||[]).map(r=>{const n=v=>{v=Number(String(v).replace(',','.'));return isFinite(v)?Math.round(v):NaN};return {f:String(r.f||'').slice(0,80),rif:String(r.rif||'').slice(0,120),pos:n(r.pos),pz:n(r.pz),L:n(r.L),H:n(r.H)}}).filter(r=>r.pos>0&&r.pz>0&&r.L>0&&r.H>0)}
+function arrEsito(conf){
+  const mancano=[],altri=[];
+  conf.ordini.forEach(o=>{
+    if(!o.righe&&!o.posizioni.some(p=>p.arrivati))return;   // ordini di cui non è arrivato niente: non sono mancanze di questo arrivo
+    o.posizioni.forEach(p=>{
+      if(p.stato==='manca'||p.stato==='parziale'||p.stato==='misure_diverse')mancano.push(o.riferimento+': pos. '+p.pos+' ('+p.L+' x '+p.H+'), ordinati '+p.q+', arrivati '+p.arrivati+(p.stato==='misure_diverse'?', misure diverse':''));
+      if(p.stato==='in_piu')altri.push(o.riferimento+': pos. '+p.pos+' in più ('+p.arrivati+' su '+p.q+')');
+    });
+  });
+  return {mancano,altri};
+}
+const arrRighe=l=>{const out=[];((l&&l.foto)||[]).forEach(f=>(f.righe||[]).forEach(r=>out.push({f:f.nome,rif:f.riferimento,pos:r.pos,pz:r.pz,L:r.L,H:r.H})));return out};
+const ARR_COL={arrivata:'#1f7a3f',manca:'#b3261e',parziale:'#a15c00',in_piu:'#a15c00',misure_diverse:'#a15c00',da_verificare:'#667085'};
+const ARR_ET={arrivata:'arrivata',manca:'MANCA',parziale:'PARZIALE',in_piu:'in più',misure_diverse:'MISURE DIVERSE',da_verificare:'da verificare a mano'};
+let ARRS=null;
+const nomeSalvato=()=>{try{return localStorage.getItem('rilievi_nome')||''}catch(e){return ''}};
+async function openArrivi(msg){
+  if(!codice()){openCantieri('Per l\'arrivo merce serve il codice di accesso.');return}
+  EI=-8;ARRS=null;const ed=document.getElementById('ed');let h='<h3>Arrivo merce</h3>';
+  ed.innerHTML=h+'<div class="hint">Cerco i clienti con merce in arrivo... (la prima volta può volerci qualche secondo)</div>';document.getElementById('foot').innerHTML='<button id="eOk">Chiudi</button>';document.getElementById('ov').classList.add('on');
+  try{
+    const r=await apiChiama({get:{a:'arrivi'}});if(EI!==-8)return;
+    h+=(msg||'')+(r.arrivi.length?r.arrivi.map(a=>'<div class="box" style="margin:6px 0"><b>'+esc(a.cliente)+'</b> '+esc(a.numero)+'<br><span class="hint">'+a.ordini+' ordini, '+a.posizioni+' posizioni attese · foto fatte: '+a.foto+(a.conferma?' · già confermato':'')+'</span><div class="chips" style="margin-top:6px">'+chip(0,'data-arsc="'+esc(a.nome)+'"','Apri')+'</div></div>').join(''):'<div class="hint">Nessun arrivo preparato. L\'ufficio lo prepara dal CRM con «Prepara per il tablet».</div>');
+    ed.innerHTML=h;ed.scrollTop=0;
+  }catch(e){if(EI!==-8)return;if(!codice()){openCantieri(messaggioErrore(e));return}ed.innerHTML=h+'<div class="box" style="color:#b00">'+esc(messaggioErrore(e))+'</div>'}
+}
+async function openArrivo(n,msg){
+  const ed=document.getElementById('ed'),sc=ed.scrollTop;EI=-8;
+  try{
+    const r=await apiChiama({get:{a:'arrivo',n}});if(EI!==-8)return;
+    ARRS={n,atteso:r.atteso||{ordini:[]},lettura:r.lettura,stato:r.stato||'',foto:r.foto||[],conferma:r.conferma,righe:arrRighe(r.lettura),conf:null,esito:null,msg:msg||''};
+    ARRS.conf=r.lettura?arrConfronta(r.lettura.ordini,arrPulisci(ARRS.righe)):null;
+    arrDisegna(sc);
+  }catch(e){if(EI!==-8)return;if(!codice()){openCantieri(messaggioErrore(e));return}alert(messaggioErrore(e));openArrivi()}
+}
+function arrDisegna(sc){
+  const a=ARRS,ed=document.getElementById('ed'),at=a.atteso;
+  let h='<h3>'+esc(at.cliente||'')+' '+esc(at.numero||'')+'</h3>'+(a.msg||'');
+  const lette=new Set(((a.lettura&&a.lettura.foto)||[]).map(f=>f.nome)),inAttesa=a.foto.filter(n=>!lette.has(n)).length;
+  h+='<div class="hint">Foto fatte: '+a.foto.length+(inAttesa?'. <b>'+inAttesa+' non ancora lette dal PC</b>: di solito servono 2-4 minuti, poi premi «Aggiorna».':'.')+'</div>';
+  if(/^errore/i.test(a.stato))h+='<div class="box" style="color:#b00">'+esc(a.stato)+'</div>';
+  if(a.conferma)h+='<div class="box" style="margin:6px 0">Ultima conferma: '+esc(a.conferma.data||'')+' da '+esc(a.conferma.da||'')+'<br>'+((a.conferma.esito&&a.conferma.esito.mancano&&a.conferma.esito.mancano.length)?'<b style="color:#b3261e">MANCANO</b>: '+a.conferma.esito.mancano.map(esc).join('; '):'tutto arrivato')+'</div>';
+  if(a.esito)h+='<div class="box" style="margin:8px 0;font-size:18px;text-align:center;'+(a.esito.mancano.length?'border-color:#b3261e;color:#b3261e':'')+'"><b>'+(a.esito.mancano.length?'MANCANO: ':'Tutto arrivato.')+'</b>'+a.esito.mancano.map(esc).join('<br>')+'</div>';
+  if(a.conf){
+    h+='<h3>Confronto con l\'ordine</h3>';const senza=[];
+    a.conf.ordini.forEach(o=>{
+      if(!(o.righe>0||o.posizioni.some(p=>p.arrivati||p.diversi))){senza.push(o);return}
+      h+='<div style="margin-top:8px"><b>'+esc(o.riferimento||o.file)+'</b></div>';
+      if(!o.leggibile){h+='<div class="hint">Ordine non letto dal programma: controllalo a mano.</div>';return}
+      h+='<table style="width:100%;border-collapse:collapse"><tr><th align="left">Pos.</th><th align="left">Misure</th><th align="right">Ordinati</th><th align="right">Arrivati</th><th align="left">Esito</th></tr>'+o.posizioni.map(p=>'<tr style="border-top:1px solid #ccc"><td>'+esc(p.pos)+'</td><td>'+esc(p.L)+' x '+esc(p.H)+'</td><td align="right">'+(p.q===null?'?':esc(p.q))+'</td><td align="right">'+esc(p.arrivati)+(p.diversi?' (+'+esc(p.diversi)+' misure diverse)':'')+'</td><td style="color:'+ARR_COL[p.stato]+';font-weight:700">'+esc(ARR_ET[p.stato]||p.stato)+'</td></tr>').join('')+'</table>';
+      if(o.extra.length)h+='<div class="hint" style="color:#a15c00">Righe lette con posizione che nell\'ordine non c\'è: '+o.extra.map(r=>'pos. '+esc(r.pos)+' ('+esc(r.pz)+' pz, '+esc(r.L)+' x '+esc(r.H)+')').join('; ')+'. Controlla la lettura.</div>';
+    });
+    if(a.conf.nonAbbinate.length)h+='<div class="box" style="color:#a15c00;margin:6px 0">'+a.conf.nonAbbinate.length+' righe lette non abbinate a nessun ordine. Scegli l\'ordine giusto sopra la foto, qui sotto.</div>';
+    if(senza.length)h+='<div class="hint" style="margin-top:6px">Altri ordini senza arrivi in queste foto: '+senza.map(o=>esc(o.riferimento||o.file)).join(', ')+'.</div>';
+    h+='<div class="hint" style="margin-top:8px">Controlla le righe lette dal PC qui sotto: se una foto era storta o un numero è sbagliato, correggilo e premi «Ricalcola».</div>';
+    const ordini=a.lettura.ordini||[];
+    (a.lettura.foto||[]).forEach(f=>{
+      h+='<div class="box" style="margin:8px 0"><b>'+esc(String(f.nome).replace(/^Packing_/,'').replace(/\.jpe?g$/i,''))+'</b> <span class="hint">riferimento letto: «'+esc(f.riferimento||'nessuno')+'»</span>'+(f.letta===false?'<div style="color:#b00">Foto non leggibile: rifotografa il foglio più dritto e con più luce.</div>':'');
+      h+='<div class="row" style="margin-top:6px"><label class="f">Ordine di questa foto<select data-arord="'+esc(f.nome)+'"><option value="">(come letto)</option>'+ordini.map(o=>'<option value="'+esc(o.riferimento)+'">'+esc(o.riferimento||o.file)+'</option>').join('')+'</select></label></div>';
+      h+='<table style="width:100%;border-collapse:collapse;margin-top:6px"><tr><th align="left">Pos.</th><th align="left">Pezzi</th><th align="left">Largh.</th><th align="left">Altez.</th><th></th></tr>'+a.righe.map((r,i)=>({r,i})).filter(x=>x.r.f===f.nome).map(x=>'<tr>'+['pos','pz','L','H'].map(k=>'<td><input data-arr="'+x.i+'.'+k+'" value="'+esc(x.r[k])+'" size="4" inputmode="numeric" style="font-size:16px;min-height:40px;width:70px"></td>').join('')+'<td><button data-artogli="'+x.i+'">Togli</button></td></tr>').join('')+'</table><div class="chips" style="margin-top:6px"><button class="chip" data-araggf="'+esc(f.nome)+'" data-arrif="'+esc(f.riferimento||'')+'">+ Aggiungi riga</button></div></div>';
+    });
+    h+='<label class="f" style="margin-top:8px">Il tuo nome (per la conferma)<input id="arrNome" value="'+esc(nomeSalvato())+'" placeholder="Mirko"></label>';
+  }else{
+    h+='<h3>Cosa è atteso</h3>'+((at.ordini||[]).map(o=>'<div class="box" style="margin:6px 0"><b>'+esc(o.riferimento||o.file)+'</b>'+(o.leggibile?'<br>'+o.posizioni.map(p=>'pos. '+esc(p.pos)+': '+(p.q===null?'?':esc(p.q))+' pz, '+esc(p.L)+' x '+esc(p.H)).join('<br>'):'<br><span class="hint">ordine non letto dal programma</span>')+'</div>').join('')||'<div class="hint">Niente.</div>')+'<div class="hint">Premi «Fotografa la packing list» per ogni foglio che arriva con i bancali.</div>';
+  }
+  ed.innerHTML=h;ed.scrollTop=sc||0;
+  document.getElementById('foot').innerHTML='<button id="arrIndietro">Elenco</button><button id="arrAgg">Aggiorna</button>'+(a.conf?'<button id="arrCalc">Ricalcola</button>':'')+'<button class="pri" id="arrFoto">Fotografa la packing list</button>'+(a.conf?'<button class="pri" id="arrOk">Confermo l\'arrivo</button>':'');
+  document.getElementById('ov').classList.add('on');
+}
+function arrRicalcola(){const sc=document.getElementById('ed').scrollTop;ARRS.conf=arrConfronta(ARRS.lettura.ordini,arrPulisci(ARRS.righe));ARRS.esito=null;arrDisegna(sc)}
+function arrRidimensiona(file){
+  return new Promise((ok,ko)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{const m=Math.max(img.naturalWidth,img.naturalHeight),k=Math.min(1,2200/m),c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);ok(c.toDataURL('image/jpeg',0.85))};
+    img.onerror=()=>{URL.revokeObjectURL(url);ko(new Error('Non riesco ad aprire la foto'))};
+    img.src=url;
+  });
+}
+async function arrCarica(file){
+  if(!ARRS)return;const n=ARRS.n;
+  try{
+    const d=await arrRidimensiona(file),r=await apiChiama({post:{a:'foto',n,b64:d}});
+    await openArrivo(n,'<div class="box" style="margin:6px 0">Foto salvata ('+esc(r.nome)+'). Il PC la legge in 2-4 minuti: premi «Aggiorna». Se ci sono altri bancali, fotografa anche quelli.</div>');
+  }catch(e){const m=String(e&&e.message||e);alert(m==='nocodice'||m==='codicesbagliato'?'Serve il codice di accesso.':'Non sono riuscito a salvare la foto: '+(m==='errore'||/fetch|Failed|rete/i.test(m)?'controlla la rete e riprova.':m))}
+}
+async function arrConferma(){
+  if(!ARRS||!ARRS.lettura)return;
+  const nome=((document.getElementById('arrNome')||{}).value||'').trim();try{localStorage.setItem('rilievi_nome',nome)}catch(e){}
+  const righe=arrPulisci(ARRS.righe),conf=arrConfronta(ARRS.lettura.ordini,righe),es=arrEsito(conf);
+  if(!confirm(es.mancano.length?'Mancano '+es.mancano.length+' voci. Confermo l\'arrivo?':'Risulta tutto arrivato. Confermo l\'arrivo?'))return;
+  try{
+    await apiChiama({post:{a:'confermaArrivo',n:ARRS.n,dati:{data:new Date().toLocaleString('it-IT'),da:nome||'tablet',righe,esito:{mancano:es.mancano,inPiu:es.altri,nonAbbinate:conf.nonAbbinate.length}}}});
+    ARRS.esito=es;ARRS.conf=conf;ARRS.conferma={data:new Date().toLocaleString('it-IT'),da:nome||'tablet',esito:{mancano:es.mancano}};arrDisegna(0);
+  }catch(e){alert('Non sono riuscito a inviare la conferma (manca la rete?). Riprova.')}
 }
 /* ---------- trasporto e scarico (per cliente) ---------- */
 function openTrasp(keep){
@@ -458,6 +611,16 @@ document.addEventListener('click',e=>{
   const t=e.target.closest('button,.cell,[data-pane],[data-trasp]');if(!t)return;
   const c=C();
   if(t.dataset.m){S.modello=t.dataset.m;save();render();return}
+  if(t.id==='gRev'||t.id==='gTieni'){const f=GIA;GIA=null;document.getElementById('ov').classList.remove('on');EI=-1;if(f)(t.id==='gRev'?f.onRev:f.onTieni)();return}
+  if(t.id==='bArr'){openArrivi();return}
+  if(t.dataset.arsc){openArrivo(t.dataset.arsc);return}
+  if(t.id==='arrIndietro'){openArrivi();return}
+  if(t.id==='arrAgg'){if(ARRS)openArrivo(ARRS.n);return}
+  if(t.id==='arrFoto'){document.getElementById('fArr').click();return}
+  if(t.id==='arrCalc'){arrRicalcola();return}
+  if(t.id==='arrOk'){arrConferma();return}
+  if(t.dataset.artogli!==undefined){ARRS.righe.splice(+t.dataset.artogli,1);arrRicalcola();return}
+  if(t.dataset.araggf!==undefined){ARRS.righe.push({f:t.dataset.araggf,rif:t.dataset.arrif||'',pos:'',pz:'',L:'',H:''});arrDisegna(document.getElementById('ed').scrollTop);return}
   if(t.id==='nuovaC'){const n=prompt('Nome del cliente');if(n){const x=nuovaCommessa(n);S.commesse.push(x);S.cur=x.id;save();render()}return}
   if(t.id==='bApri'){document.getElementById('fCant').click();return}
   if(t.id==='bEsc'){esportaCantiere();return}
@@ -468,7 +631,7 @@ document.addEventListener('click',e=>{
   if(t.id==='bCodice'){const v=(document.getElementById('codIn')||{}).value||'';if(v.trim()){try{localStorage.setItem('rilievi_codice',v.trim())}catch(e){}}openCantieri();return}
   if(t.id==='bCodice2'){try{localStorage.removeItem('rilievi_codice')}catch(e){}openCantieri();return}
   if(t.id==='bScTutti'||t.id==='bScTutti2'){const dopo=t.id==='bScTutti2'?openPronto:openCantieri;scaricaTutti().then(()=>dopo()).catch(e=>alert(messaggioErrore(e)));return}
-  if(t.dataset.sc){const nm=t.dataset.sc;t.textContent='Scarico...';scaricaCantiere(nm).then(x=>{alert('Scaricato: '+x.nome+'\nPosizioni: '+x.pos+'\nPiantine salvate nell\'app: '+x.piantine);openCantieri()}).catch(e=>{alert(messaggioErrore(e));openCantieri()});return}
+  if(t.dataset.sc){const nm=t.dataset.sc;t.textContent='Scarico...';scaricaCantiere(nm).then(x=>{if(x.gia){openGia(x.gia,()=>scaricaCantiere(nm,true).then(y=>{alert('Creata la Rev '+y.rev+': '+y.nome+'\nPosizioni: '+y.pos+'\nPiantine salvate nell\'app: '+y.piantine+'\nLa Rev precedente è rimasta intatta.');openCantieri()}).catch(e=>{alert(messaggioErrore(e));openCantieri()}),()=>openCantieri());return}alert('Scaricato: '+x.nome+'\nPosizioni: '+x.pos+'\nPiantine salvate nell\'app: '+x.piantine);openCantieri()}).catch(e=>{alert(messaggioErrore(e));openCantieri()});return}
   if(t.dataset.pf){DBF.lista(C().id).then(l=>{const r=l.find(x=>x.name===t.dataset.pf);if(r)mostraFile(r)});return}
   if(t.id==='bScegli'){document.getElementById('fPian').click();return}
   if(t.id==='pvx'){document.getElementById('pv').classList.remove('on');return}
@@ -506,19 +669,23 @@ document.addEventListener('click',e=>{
     else if(w==='c3'&&k.c2){k.c3=!k.c3}
     save();openEd(EI,true);return}
 });
-document.addEventListener('change',e=>{
+document.addEventListener('input',e=>{const d=e.target.dataset||{};if(EI===-8&&ARRS&&d.arr){const q=d.arr.split('.');if(ARRS.righe[+q[0]])ARRS.righe[+q[0]][q[1]]=e.target.value}});
+document.addEventListener('change',e=>{{const dd=e.target.dataset||{};
+  if(e.target.id==='fArr'){const f=e.target.files&&e.target.files[0];e.target.value='';if(f)arrCarica(f);return}
+  if(EI===-8&&ARRS&&dd.arord!==undefined){const f=(ARRS.lettura.foto||[]).filter(x=>x.nome===dd.arord)[0];ARRS.righe.forEach(r=>{if(r.f===dd.arord)r.rif=e.target.value||(f?f.riferimento:'')});arrRicalcola();return}}
   const d=e.target.dataset||{};
   if(EI!==-1&&(d.p||d.aln||d.tn)){applyField(e.target);return}
   if(e.target.id==='selC'){S.cur=e.target.value;save();render()}
   if(d.h){C()[d.h]=e.target.value;save();if(d.h==='cliente')renderBar()}
   if(e.target.id==='fCant'&&e.target.files.length){const fl=[...e.target.files];e.target.value='';const js=fl.find(f=>/\.json$/i.test(f.name)),altri=fl.filter(f=>f!==js);
-    const lavora=async x=>{let k=null,c=C();if(x){k=importaCantiere(x);c=C()}let n=0;for(const f of altri){try{await salvaFile(c.id,f);n++}catch(er){}}
-      alert((k?'Cantiere aperto: '+k.nome+'\nPosizioni: '+k.tot+' ('+k.nuove+' nuove, '+k.agg+' aggiornate dal contratto)\n':'')+'Piantine salvate nell\'app: '+n)};
+    const lavora=async(x,rev)=>{let k=null,c=C();if(x){k=importaCantiere(x,rev);if(k.gia){openGia(k.gia,()=>lavora(x,true).catch(()=>alert('File non valido')),()=>{});return}c=C()}let n=0;for(const f of altri){try{await salvaFile(c.id,f);n++}catch(er){}}
+      if(k&&k.daId)n+=await copiaFile(k.daId,c.id,altri.map(f=>f.name));
+      alert((k?(k.rev>1?'Creata la Rev '+k.rev+': ':'Cantiere aperto: ')+k.nome+'\nPosizioni: '+k.tot+' ('+k.nuove+' nuove, '+k.agg+' aggiornate dal contratto)\n'+(k.rev>1?'Le revisioni precedenti sono rimaste intatte.\n':''):'')+'Piantine salvate nell\'app: '+n)};
     if(js){const r=new FileReader();r.onload=()=>{let x;try{x=JSON.parse(r.result)}catch(err){alert('File non valido');return}lavora(x).catch(()=>alert('File non valido'))};r.readAsText(js)}else lavora(null).catch(()=>alert('Non riesco a salvare i file'));return}
   if(e.target.id==='fPian'&&e.target.files.length){const fl=[...e.target.files],c=C();e.target.value='';Promise.all(fl.map(f=>salvaFile(c.id,f))).then(()=>openPiantina()).catch(()=>alert('Non riesco a salvare il file nell\'app'));return}
-  if(e.target.id==='fImp'&&e.target.files[0]){const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(x.commesse){S=x;save();render()}else alert('File non valido')}catch(err){alert('File non valido')}};r.readAsText(e.target.files[0])}
+  if(e.target.id==='fImp'&&e.target.files[0]){const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(Array.isArray(x.commesse)){importaBackup(x)}else alert('File non valido')}catch(err){alert('File non valido')}};r.readAsText(e.target.files[0])}
 });
-document.getElementById('ov').addEventListener('click',e=>{if(e.target.id==='ov')closeEd()});
+document.getElementById('ov').addEventListener('click',e=>{if(e.target.id==='ov'&&EI!==-7&&EI!==-8)closeEd()});
 
 /* ---------- firma ---------- */
 function iniFirma(){
