@@ -47,6 +47,9 @@ button{cursor:pointer}
 .spm{position:absolute;left:100%;bottom:100%;margin-left:2px;font-size:12px;line-height:1.1;white-space:nowrap;transform-origin:left bottom;transform:rotate(-45deg);font-weight:600}
 .sk{display:block;width:100%;max-width:560px;height:auto;background:#fff;touch-action:none;border:1px solid var(--line);border-radius:6px}
 .skc{display:block;width:100%;height:auto}
+.cell .bfl{min-height:16px}
+.cell .qtl{text-align:left;font-size:13px;font-weight:700;line-height:1.2;min-height:16px}
+.cell .dw.rl{margin-top:14px}
 .apt{position:absolute;top:34px;left:100%;margin-left:6px;font-size:13px;line-height:1.1;font-weight:700;color:var(--ink);white-space:nowrap}
 .qtd{position:absolute;top:-4px;right:100%;margin-right:4px;font-size:12px;line-height:1.1;font-weight:700;white-space:nowrap}
 .qta{font-weight:700}
@@ -108,7 +111,7 @@ button{cursor:pointer}
 
 <script>
 "use strict";
-const VERSIONE='v14';
+const VERSIONE='v15';
 /* Nomi dei modelli: R1 Rilievo, E1 Esecutivo, M1 Monoblocco, T1 Controtelai, C1 Collaudo */
 const MODELLI=[['ril','R1 Rilievo'],['esec','E1 Esecutivo'],['mono','M1 Monoblocco'],['ctel','T1 Controtelai'],['coll','C1 Collaudo']];
 const LS='rilievi_corrado_v2';
@@ -216,12 +219,13 @@ function skIni(p){const svg=document.getElementById('sk');if(!svg)return;let cur
   const fine=()=>{if(cur){cur=null;save()}};
   svg.addEventListener('pointerup',fine);svg.addEventListener('pointercancel',fine)}
 function cellMis(p,m){
-  if(skOn(p))return '<div class="dw" style="display:block">'+skSvg(p,false)+'</div>';
+  if(skOn(p))return (p.qta?'<div class="qtl">N° '+esc(p.qta)+'</div>':'')+'<div class="dw" style="display:block">'+skSvg(p,false)+'</div>';
   const pf=m==='esec'?'esec':'ril',o=p[pf],a=p.ale,pre=k=>p.prev[pf+'.'+k]!==undefined?' <span class="pre">'+fmt(p.prev[pf+'.'+k])+'</span>':'';
   let h='';
-  if(o.BF!==undefined||o.BL!==undefined)h+='<div class="m">BF '+fmt(o.BF)+'&emsp;BL '+fmt(o.BL)+'</div>';
-  const sv='<span class="sv">'+svgTipo(p.disegno,70,84)+(o.spMuro!==undefined?'<span class="spm">sp. '+fmt(o.spMuro)+'</span>':'')+(p.apertura?'<span class="apt">'+esc(p.apertura)+'</span>':'')+(p.qta?'<span class="qtd">N° '+esc(p.qta)+'</span>':'')+'</span>';
-  h+='<div class="dw"><div class="vt m">'+(o.H!==undefined?alS(a.giu)+' + '+fmt(o.H)+' + '+alS(a.su)+pre('H'):'')+'</div>'+sv+'</div>';
+  h+='<div class="m bfl">'+((o.BF!==undefined||o.BL!==undefined)?'BF '+fmt(o.BF)+'&emsp;BL '+fmt(o.BL):'&nbsp;')+'</div>';
+  h+='<div class="qtl">'+(p.qta?'N° '+esc(p.qta):'&nbsp;')+'</div>';
+  const sv='<span class="sv">'+svgTipo(p.disegno,70,84)+(o.spMuro!==undefined?'<span class="spm">sp. '+fmt(o.spMuro)+'</span>':'')+(p.apertura?'<span class="apt">'+esc(p.apertura)+'</span>':'')+'</span>';
+  h+='<div class="dw rl"><div class="vt m">'+(o.H!==undefined?alS(a.giu)+' + '+fmt(o.H)+' + '+alS(a.su)+pre('H'):'')+'</div>'+sv+'</div>';
   if(o.L!==undefined)h+='<div class="m">'+alS(a.sx)+' + '+fmt(o.L)+' + '+alS(a.dx)+pre('L')+'</div>';
   if(o.LST!==undefined||o.HST!==undefined)h+='<div class="m">LST '+fmt(o.LST)+'&emsp;HST '+fmt(o.HST)+'</div>';
   return h;
@@ -247,7 +251,7 @@ function renderWrap(){
   const c=C(),n=c.pos.length,np=Math.max(1,Math.ceil((n+1)/9));let h='';
   for(let pg=0;pg<np;pg++){
     h+='<div class="page"><div class="head"><h2>FOGLIO MISURE</h2>'+
-     hf('data','Data',c.data,'date')+hf('luogo','Luogo',c.luogo)+hf('cliente','Cliente',c.cliente)+hf('rif','Rif',c.rif)+
+     hf('data','Data',c.data,'date')+hf('luogo','Luogo',c.luogo)+hf('cliente','Cliente',c.cliente)+'<label><span>Rif</span><input data-h="rif" type="text" value="'+esc(c.rif)+'"><select data-h="tipoRif" title="C = contratto, P = preventivo" style="border:1px solid var(--line);border-radius:6px;font-size:14px;padding:1px 2px;background:#fff"><option value="C"'+(c.tipoRif==='P'?'':' selected')+'>C</option><option value="P"'+(c.tipoRif==='P'?' selected':'')+'>P</option></select></label>'+
      '<label><span>Rilievo</span><b>'+NOME()+'</b></label>'+hf('tipologia','Tipologia',c.tipologia)+hf('colore','Colore',c.colore)+hf('consegna','Consegna',c.consegna)+'</div>';
     if(pg===0&&M()==='ril'){const s=traspS(c);h+='<div class="tr'+(s?'':' noprint')+'" data-trasp="1"><b>Trasporto e scarico:</b> '+(s?esc(s):'tocca per compilare (piano, gru, mezzo di scarico)')+'</div>'}
     h+='<div class="grid">';
@@ -381,16 +385,16 @@ async function salvaFotoPos(file){
 async function inviaFoto(){
   const c=C();let l=[];try{l=await fotoDi(c.id)}catch(e){}
   if(!l.length){alert('Nessuna foto da inviare per questo cliente.');return}
-  if(!/^\d{1,4}\s*\/\s*\d{2}/.test(String(c.rif||'').trim())){alert('Per inviare le foto scrivi prima il numero del contratto nel campo Rif (es. 103/25). Fino ad allora restano nel tablet.');return}
+  if(!/^\d{1,4}\s*\/\s*\d{2}/.test(String(c.rif||'').trim())){alert('Per inviare le foto scrivi prima il numero nel campo Rif (es. 103/25) e scegli C (contratto) o P (preventivo). Fino ad allora restano nel tablet.');return}
   if(!codice()){openCantieri('Per inviare serve il codice di accesso.');return}
   l.sort((a,b)=>a.key<b.key?-1:1);let ok=0;const bt=document.getElementById('bFoto');
   for(const r of l){
     if(bt)bt.textContent='Invio '+(ok+1)+' di '+l.length+'...';
-    try{await apiChiama({post:{a:'fotoPos',numero:c.rif,nome:nomeFoto(r),b64:r.b64}});await fotoDel(r.key);ok++}
+    try{await apiChiama({post:{a:'fotoPos',numero:c.rif,tipo:c.tipoRif==='P'?'P':'C',nome:nomeFoto(r),b64:r.b64}});await fotoDel(r.key);ok++}
     catch(e){const m=String(e&&e.message||e);await aggFotoUi();if(m==='nocodice'||m==='codicesbagliato'){openCantieri('Per inviare serve il codice di accesso.');return}
       alert('Inviate '+ok+' foto su '+l.length+'. Mi sono fermato: '+(/fetch|Failed|rete|errore$/i.test(m)?'controlla la rete e riprova, riparto da dove ero rimasto.':m));return}
   }
-  await aggFotoUi();alert('Inviate '+ok+' foto. Nel CRM «Ricevi il rilievo» le mette in Tecnico, per posizione.');
+  await aggFotoUi();alert('Inviate '+ok+' foto. '+(c.tipoRif==='P'?'Sono nella cartella del preventivo, in Foto_rilievo, per posizione.':'Nel CRM «Ricevi il rilievo» le mette in Tecnico, per posizione.'));
 }
 const haFile=(lst,n)=>lst.some(x=>x.name.toLowerCase()===String(n).toLowerCase());
 function mostraFile(rec){const u=URL.createObjectURL(rec.blob);document.getElementById('ov').classList.remove('on');EI=-1;if(String(rec.type).indexOf('image')===0){document.getElementById('pvi').src=u;document.getElementById('pv').classList.add('on')}else{window.open(u,'_blank')}}
@@ -472,7 +476,7 @@ function importaBackup(x){
   passo(0);
 }
 function datiCantiere(){
-  const c=C(),o={formato:1,tipo:'ritorno',numero:c.rif,cliente:c.cliente,luogo:c.luogo,contratto:c.contratto||'',esportato:new Date().toISOString(),revRilievo:revDi(c),data:c.data,colore:c.colore,tipologia:c.tipologia,consegna:c.consegna,piantine:c.piantine||[],trasp:T(c),posizioni:c.pos};
+  const c=C(),o={formato:1,tipo:'ritorno',numero:c.rif,tipoRif:c.tipoRif==='P'?'P':'C',cliente:c.cliente,luogo:c.luogo,contratto:c.contratto||'',esportato:new Date().toISOString(),revRilievo:revDi(c),data:c.data,colore:c.colore,tipologia:c.tipologia,consegna:c.consegna,piantine:c.piantine||[],trasp:T(c),posizioni:c.pos};
   const nome='rilievo_'+String(c.rif||'').replace(/\W+/g,'_')+'_'+String(c.cliente||'').replace(/\W+/g,'_')+(revDi(c)>1?'_Rev'+revDi(c):'')+'_'+new Date().toISOString().slice(0,10)+'.json';
   return {o,nome};
 }
