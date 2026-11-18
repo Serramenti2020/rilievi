@@ -106,7 +106,7 @@ button{cursor:pointer}
 
 <script>
 "use strict";
-const VERSIONE='v11';
+const VERSIONE='v13';
 /* Nomi dei modelli: R1 Rilievo, E1 Esecutivo, M1 Monoblocco, T1 Controtelai, C1 Collaudo */
 const MODELLI=[['ril','R1 Rilievo'],['esec','E1 Esecutivo'],['mono','M1 Monoblocco'],['ctel','T1 Controtelai'],['coll','C1 Collaudo']];
 const LS='rilievi_corrado_v2';
@@ -127,7 +127,8 @@ const MEZZI=['A mano','Scala interna','Scala esterna','Ponteggio','Elevatore','G
 
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=n=>(n===undefined||n===null||n==='')?'':String(n).replace('.',',');
-function parseMm(s){s=String(s).trim().toLowerCase().replace(/mm|\s/g,'').replace(',','.');const m=s.match(/-?\d+(\.\d+)?/);return m?Math.round(parseFloat(m[0])*10)/10:null}
+/* Leica Disto X3: scrive i METRI con 3 decimali (1.234 o 1,234 = 1234 mm). Un numero con 1-2 cifre, separatore e ESATTAMENTE 3 decimali si legge come metri (18/11/2026). */
+function parseMm(s){s=String(s).trim().toLowerCase().replace(/mm|\s/g,'').replace(',','.');const mt=s.match(/^(\d{1,2}\.\d{3})m?$/);if(mt)return Math.round(parseFloat(mt[1])*1000);const m=s.match(/-?\d+(\.\d+)?/);return m?Math.round(parseFloat(m[0])*10)/10:null}
 const lettera=i=>String.fromCharCode(65+i%26)+(i>=26?Math.floor(i/26):'');
 const nuovaPos=id=>({id,stanza:'',etichetta:'',qta:'',sistema:'',apertura:'',tipo:'',descrizione:'',nominale:{},complementi:[],verifica:[],vOk:false,origine:'',disegno:'<',note:'',ril:{},esec:{},ale:{sx:{t:''},dx:{t:''},su:{t:''},giu:{t:''}},mono:{},ctel:{},coll:{},prev:{},chk:{}});
 const nuovaTrasp=()=>({piano:'',mezzi:[],gru:'',diff:'',note:''});
@@ -178,8 +179,8 @@ function renderBar(){
    '<span class="ver">Rilievi '+VERSIONE+'</span><select id="selC">'+S.commesse.map(x=>'<option value="'+x.id+'"'+(x.id===c.id?' selected':'')+'>'+esc(x.cliente||'(senza nome)')+(x.rif&&S.commesse.filter(k=>k.rif===x.rif).length>1?' · Rev '+revDi(x):'')+'</option>').join('')+'</select>'+
    '<button id="nuovaC">+ Cliente</button>'+
    MODELLI.map(m=>'<button class="tab'+(m[0]===M()?' on':'')+'" data-m="'+m[0]+'">'+m[1]+'</button>').join('')+
-   '<button id="bCant" class="pri">Cantieri</button><button id="bApri">Apri da file</button><button id="bPian">Piantina</button><button id="bArr" class="pri">Arrivo merce</button><button id="bPronto" class="pri">Pronto per uscire</button><span class="sp"></span><button id="bInv" class="pri">Invia al CRM</button><button id="bEsc">Esporta cantiere</button><button id="bPrint">Stampa / PDF</button><button id="bExp">Esporta</button><button id="bImp">Importa</button>'+
-   '<input type="file" id="fImp" accept=".json" hidden><input type="file" id="fCant" accept=".json,application/pdf,image/*" multiple hidden><input type="file" id="fPian" accept="application/pdf,image/*" multiple hidden><input type="file" id="fArr" accept="image/*" capture="environment" hidden>';
+   '<button id="bCant" class="pri">Cantieri</button><button id="bApri">Apri da file</button><button id="bPian">Piantina</button><button id="bArr" class="pri">Arrivo merce</button><button id="bPronto" class="pri">Pronto per uscire</button><span class="sp"></span><button id="bFoto">Invia foto</button><button id="bInv" class="pri">Invia al CRM</button><button id="bEsc">Esporta cantiere</button><button id="bPrint">Stampa / PDF</button><button id="bExp">Esporta</button><button id="bImp">Importa</button>'+
+   '<input type="file" id="fImp" accept=".json" hidden><input type="file" id="fCant" accept=".json,application/pdf,image/*" multiple hidden><input type="file" id="fPian" accept="application/pdf,image/*" multiple hidden><input type="file" id="fArr" accept="image/*" capture="environment" hidden><input type="file" id="fFoto" accept="image/*" capture="environment" hidden>';
 }
 function chkHtml(p){const k=p.chk[M()]||{};return '<span class="ks"><span class="k'+(k.c1?' on':'')+'">X</span><span class="k'+(k.c2?' on':'')+'">&#9711;</span><span class="k'+(k.c3?' on':'')+'">_</span></span>'}
 function cellMis(p,m){
@@ -228,7 +229,7 @@ function renderWrap(){
   if(M()==='coll')iniFirma();
 }
 const hf=(k,l,v,t)=>'<label><span>'+l+'</span><input data-h="'+k+'" type="'+(t||'text')+'" value="'+esc(v)+'"></label>';
-function render(){renderBar();renderWrap()}
+function render(){renderBar();renderWrap();aggFotoUi()}
 
 /* ---------- differenze (solo numeri, nessun verdetto) ---------- */
 function diffHtml(p,breve){
@@ -283,8 +284,9 @@ function openEd(i,keep){
   const k=p.chk[m]||{};
   h+='<h3>Controlli (i tre cerchietti in basso a destra, in verticale)</h3><div class="hint">1 X controllato, poi 2 ◯ controverifica sulla conferma d\'ordine, poi 3 _ tutto corretto. Ogni passo si accende solo dopo il precedente.</div><div class="chips">'+chip(k.c1,'data-chk="c1"','X Controllato')+chip(k.c2,'data-chk="c2"','◯ Controverifica conferma ordine')+chip(k.c3,'data-chk="c3"','_ Tutto corretto')+'</div>';
   ed.innerHTML=h;ed.scrollTop=sc;
-  document.getElementById('foot').innerHTML='<button class="del" id="eDel">Elimina</button><button class="pri" id="eOk">Fatto</button>';
+  document.getElementById('foot').innerHTML='<button class="del" id="eDel">Elimina</button><button id="eFoto">Foto</button><button class="pri" id="eOk">Fatto</button>';
   document.getElementById('ov').classList.add('on');
+  aggFotoUi();
   formule();
   if(!keep&&(m==='ril'||m==='esec')){const fi=[...ed.querySelectorAll('.mi[data-p]')].find(x=>x.value==='');if(fi)try{fi.focus()}catch(e){}}
 }
@@ -323,6 +325,37 @@ const DBF={
   async lista(cid){const d=await this.open(),pre=cid+'|';if(!d)return [...MEM.entries()].filter(e=>e[0].startsWith(pre)).map(e=>e[1]);return new Promise((ok,ko)=>{const out=[],rq=d.transaction('f').objectStore('f').openCursor();rq.onsuccess=()=>{const cu=rq.result;if(cu){if(String(cu.key).startsWith(pre))out.push(cu.value);cu.continue()}else ok(out)};rq.onerror=()=>ko(rq.error)})}
 };
 const salvaFile=(cid,fl)=>DBF.put(cid+'|'+fl.name.toLowerCase(),{name:fl.name,type:fl.type,size:fl.size,blob:fl,data:new Date().toISOString()});
+/* ---------- Foto per posizione (17/11/2026): scatto salvato SOLO nel tablet (nessuna rete, nessun rallentamento); l'invio parte solo col pulsante «Invia foto».
+   Nel CRM finiscono in Tecnico\Foto_rilievo\Pos_<lettera>. Servono il numero del contratto (campo Rif) e il codice di accesso. ---------- */
+const FOTOPRE='foto|';
+let FOTON=0,FOTOCUR=null;
+const sanNome=(t,mx)=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,mx||30);
+const nomeFoto=r=>'Pos_'+(sanNome(r.pos,12)||'X')+(sanNome(r.stanza,24)?'_'+sanNome(r.stanza,24):'')+'_'+String(r.n).padStart(2,'0')+'.jpg';
+async function fotoDi(cid){const d=await DBF.open();if(!d)return [...MEM.entries()].filter(e=>e[0].startsWith(FOTOPRE+cid+'|')).map(e=>Object.assign({key:e[0]},e[1]));
+  return new Promise((ok,ko)=>{const out=[],rq=d.transaction('f').objectStore('f').openCursor();rq.onsuccess=()=>{const cu=rq.result;if(cu){if(String(cu.key).startsWith(FOTOPRE+cid+'|'))out.push(Object.assign({key:cu.key},cu.value));cu.continue()}else ok(out)};rq.onerror=()=>ko(rq.error)})}
+async function fotoDel(key){const d=await DBF.open();if(!d){MEM.delete(key);return}return new Promise((ok,ko)=>{const t=d.transaction('f','readwrite');t.objectStore('f').delete(key);t.oncomplete=()=>ok();t.onerror=()=>ko(t.error)})}
+async function aggFotoUi(){let n=0,np=0;try{const l=await fotoDi(C().id);n=l.length;const p=EI>=0?C().pos[EI]:null;if(p)np=l.filter(x=>x.pos===p.id).length}catch(e){}
+  FOTON=n;const b=document.getElementById('bFoto');if(b)b.textContent=n?'Invia foto ('+n+')':'Invia foto';const e=document.getElementById('eFoto');if(e&&EI>=0)e.textContent=np?'Foto ('+np+' da inviare)':'Foto'}
+async function salvaFotoPos(file){
+  const c=C(),p=FOTOCUR&&c.pos[FOTOCUR.i];if(!p||!file)return;
+  try{const b64=await arrRidimensiona(file);c.fotoN=c.fotoN||{};c.fotoN[p.id]=(c.fotoN[p.id]||0)+1;const n=c.fotoN[p.id];
+    await DBF.put(FOTOPRE+c.id+'|'+Date.now()+'_'+n+'_'+p.id,{cid:c.id,pos:p.id,stanza:p.stanza||'',n,b64,data:new Date().toISOString()});save();await aggFotoUi()}
+  catch(e){alert('Non riesco a salvare la foto nel tablet. Riprova.')}
+}
+async function inviaFoto(){
+  const c=C();let l=[];try{l=await fotoDi(c.id)}catch(e){}
+  if(!l.length){alert('Nessuna foto da inviare per questo cliente.');return}
+  if(!/^\d{1,4}\s*\/\s*\d{2}/.test(String(c.rif||'').trim())){alert('Per inviare le foto scrivi prima il numero del contratto nel campo Rif (es. 103/25). Fino ad allora restano nel tablet.');return}
+  if(!codice()){openCantieri('Per inviare serve il codice di accesso.');return}
+  l.sort((a,b)=>a.key<b.key?-1:1);let ok=0;const bt=document.getElementById('bFoto');
+  for(const r of l){
+    if(bt)bt.textContent='Invio '+(ok+1)+' di '+l.length+'...';
+    try{await apiChiama({post:{a:'fotoPos',numero:c.rif,nome:nomeFoto(r),b64:r.b64}});await fotoDel(r.key);ok++}
+    catch(e){const m=String(e&&e.message||e);await aggFotoUi();if(m==='nocodice'||m==='codicesbagliato'){openCantieri('Per inviare serve il codice di accesso.');return}
+      alert('Inviate '+ok+' foto su '+l.length+'. Mi sono fermato: '+(/fetch|Failed|rete|errore$/i.test(m)?'controlla la rete e riprova, riparto da dove ero rimasto.':m));return}
+  }
+  await aggFotoUi();alert('Inviate '+ok+' foto. Nel CRM «Ricevi il rilievo» le mette in Tecnico, per posizione.');
+}
 const haFile=(lst,n)=>lst.some(x=>x.name.toLowerCase()===String(n).toLowerCase());
 function mostraFile(rec){const u=URL.createObjectURL(rec.blob);document.getElementById('ov').classList.remove('on');EI=-1;if(String(rec.type).indexOf('image')===0){document.getElementById('pvi').src=u;document.getElementById('pv').classList.add('on')}else{window.open(u,'_blank')}}
 async function openPiantina(){
@@ -628,6 +661,8 @@ document.addEventListener('click',e=>{
   if(t.id==='bPronto'){openPronto();return}
   if(t.id==='bCant'){openCantieri();return}
   if(t.id==='bInv'){inviaCantiere();return}
+  if(t.id==='bFoto'){inviaFoto();return}
+  if(t.id==='eFoto'){FOTOCUR={i:EI};document.getElementById('fFoto').click();return}
   if(t.id==='bCodice'){const v=(document.getElementById('codIn')||{}).value||'';if(v.trim()){try{localStorage.setItem('rilievi_codice',v.trim())}catch(e){}}openCantieri();return}
   if(t.id==='bCodice2'){try{localStorage.removeItem('rilievi_codice')}catch(e){}openCantieri();return}
   if(t.id==='bScTutti'||t.id==='bScTutti2'){const dopo=t.id==='bScTutti2'?openPronto:openCantieri;scaricaTutti().then(()=>dopo()).catch(e=>alert(messaggioErrore(e)));return}
@@ -682,6 +717,7 @@ document.addEventListener('change',e=>{{const dd=e.target.dataset||{};
       if(k&&k.daId)n+=await copiaFile(k.daId,c.id,altri.map(f=>f.name));
       alert((k?(k.rev>1?'Creata la Rev '+k.rev+': ':'Cantiere aperto: ')+k.nome+'\nPosizioni: '+k.tot+' ('+k.nuove+' nuove, '+k.agg+' aggiornate dal contratto)\n'+(k.rev>1?'Le revisioni precedenti sono rimaste intatte.\n':''):'')+'Piantine salvate nell\'app: '+n)};
     if(js){const r=new FileReader();r.onload=()=>{let x;try{x=JSON.parse(r.result)}catch(err){alert('File non valido');return}lavora(x).catch(()=>alert('File non valido'))};r.readAsText(js)}else lavora(null).catch(()=>alert('Non riesco a salvare i file'));return}
+  if(e.target.id==='fFoto'){const f=e.target.files[0];e.target.value='';if(f)salvaFotoPos(f);return}
   if(e.target.id==='fPian'&&e.target.files.length){const fl=[...e.target.files],c=C();e.target.value='';Promise.all(fl.map(f=>salvaFile(c.id,f))).then(()=>openPiantina()).catch(()=>alert('Non riesco a salvare il file nell\'app'));return}
   if(e.target.id==='fImp'&&e.target.files[0]){const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(Array.isArray(x.commesse)){importaBackup(x)}else alert('File non valido')}catch(err){alert('File non valido')}};r.readAsText(e.target.files[0])}
 });
