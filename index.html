@@ -44,7 +44,9 @@ button{cursor:pointer}
 .avv{display:block;color:#b00;font-weight:600;font-size:12px}
 .sv{position:relative;display:inline-block;line-height:0}
 .sv svg{display:block}
-.spm{position:absolute;top:-2px;right:-6px;font-size:12px;line-height:1.1;white-space:nowrap;transform-origin:left bottom;transform:rotate(-45deg);font-weight:600}
+.spm{position:absolute;left:100%;bottom:100%;margin-left:2px;font-size:12px;line-height:1.1;white-space:nowrap;transform-origin:left bottom;transform:rotate(-45deg);font-weight:600}
+.sk{display:block;width:100%;max-width:560px;height:auto;background:#fff;touch-action:none;border:1px solid var(--line);border-radius:6px}
+.skc{display:block;width:100%;height:auto}
 .apt{position:absolute;top:34px;left:100%;margin-left:6px;font-size:13px;line-height:1.1;font-weight:700;color:var(--ink);white-space:nowrap}
 .qtd{position:absolute;top:-4px;right:100%;margin-right:4px;font-size:12px;line-height:1.1;font-weight:700;white-space:nowrap}
 .qta{font-weight:700}
@@ -106,7 +108,7 @@ button{cursor:pointer}
 
 <script>
 "use strict";
-const VERSIONE='v13';
+const VERSIONE='v14';
 /* Nomi dei modelli: R1 Rilievo, E1 Esecutivo, M1 Monoblocco, T1 Controtelai, C1 Collaudo */
 const MODELLI=[['ril','R1 Rilievo'],['esec','E1 Esecutivo'],['mono','M1 Monoblocco'],['ctel','T1 Controtelai'],['coll','C1 Collaudo']];
 const LS='rilievi_corrado_v2';
@@ -183,7 +185,38 @@ function renderBar(){
    '<input type="file" id="fImp" accept=".json" hidden><input type="file" id="fCant" accept=".json,application/pdf,image/*" multiple hidden><input type="file" id="fPian" accept="application/pdf,image/*" multiple hidden><input type="file" id="fArr" accept="image/*" capture="environment" hidden><input type="file" id="fFoto" accept="image/*" capture="environment" hidden>';
 }
 function chkHtml(p){const k=p.chk[M()]||{};return '<span class="ks"><span class="k'+(k.c1?' on':'')+'">X</span><span class="k'+(k.c2?' on':'')+'">&#9711;</span><span class="k'+(k.c3?' on':'')+'">_</span></span>'}
+/* ---------- Schizzo libero (v14, 18/11/2026, richiesta di Corrado): posizione con SOLO schizzo a mano e testi, senza finestra ne misure.
+   Dati in p.schizzo={on,el:[{k:'p',pts:[[x,y]..]},{k:'t',x,y,t}]}, base 300x260; viaggia nel file inviato al CRM dentro la posizione. ---------- */
+const SKW=300,SKH=260;let SKT='pen';
+const skOn=p=>!!(p.schizzo&&p.schizzo.on);
+const skEl=p=>{if(!p.schizzo)p.schizzo={on:false,el:[]};if(!p.schizzo.el)p.schizzo.el=[];return p.schizzo.el};
+function skInner(p){let s='<rect x="1" y="1" width="298" height="258" fill="#fff" stroke="#ddd" stroke-width="1"/>';
+  ((p.schizzo&&p.schizzo.el)||[]).forEach(e=>{
+    if(e.k==='t')s+='<text x="'+e.x+'" y="'+e.y+'" font-size="15" font-family="sans-serif" fill="#1c1c1c" stroke="none">'+esc(e.t)+'</text>';
+    else s+='<polyline points="'+e.pts.map(q=>q[0]+','+q[1]).join(' ')+'"/>'});
+  return s}
+function skSvg(p,editor){return '<svg class="'+(editor?'sk':'skc')+'"'+(editor?' id="sk"':'')+' viewBox="0 0 '+SKW+' '+SKH+'" fill="none" stroke="#1c1c1c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+skInner(p)+'</svg>'}
+function skEd(p){return '<h3>Schizzo libero</h3><div class="hint">Disegna col dito o col pennino. Con «Testo» tocca il punto dove scrivere una misura o una didascalia (toccando un testo già scritto lo cambi). Con «Cancella» tocca un tratto o un testo per toglierlo.</div>'+
+  '<div class="chips" style="margin-bottom:6px">'+chip(SKT==='pen','data-skt="pen"','Penna')+chip(SKT==='txt','data-skt="txt"','Testo')+chip(SKT==='del','data-skt="del"','Cancella')+chip(0,'data-sk="undo"','Annulla')+chip(0,'data-sk="clear"','Svuota tutto')+'</div>'+skSvg(p,true)}
+function skSeg(a,b,q){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let t=l?((q[0]-a[0])*dx+(q[1]-a[1])*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(q[0]-(a[0]+t*dx),q[1]-(a[1]+t*dy))}
+function skHit(p,q){const el=skEl(p);for(let i=el.length-1;i>=0;i--){const e=el[i];
+  if(e.k==='t'){if(q[0]>=e.x-4&&q[0]<=e.x+Math.max(20,String(e.t).length*8)&&q[1]>=e.y-16&&q[1]<=e.y+5)return i}
+  else for(let j=1;j<e.pts.length;j++)if(skSeg(e.pts[j-1],e.pts[j],q)<9)return i}return -1}
+function skIni(p){const svg=document.getElementById('sk');if(!svg)return;let cur=null;
+  const pt=e=>{const r=svg.getBoundingClientRect();return [Math.round((e.clientX-r.left)/r.width*SKW*10)/10,Math.round((e.clientY-r.top)/r.height*SKH*10)/10]};
+  const draw=()=>{svg.innerHTML=skInner(p)};
+  svg.addEventListener('pointerdown',e=>{e.preventDefault();const q=pt(e);
+    if(SKT==='pen'){cur={k:'p',pts:[q,q]};skEl(p).push(cur);try{svg.setPointerCapture(e.pointerId)}catch(x){}draw()}
+    else if(SKT==='txt'){const i=skHit(p,q),el=skEl(p);
+      if(i>=0&&el[i].k==='t'){const t=prompt('Testo (vuoto per cancellare)',el[i].t);if(t===null)return;if(t.trim()==='')el.splice(i,1);else el[i].t=t.trim().slice(0,60)}
+      else{const t=prompt('Testo');if(!t||!t.trim())return;el.push({k:'t',x:q[0],y:Math.round((q[1]+5)*10)/10,t:t.trim().slice(0,60)})}
+      save();draw()}
+    else{const i=skHit(p,q);if(i>=0){skEl(p).splice(i,1);save();draw()}}});
+  svg.addEventListener('pointermove',e=>{if(!cur)return;e.preventDefault();const q=pt(e),l=cur.pts[cur.pts.length-1];if(Math.hypot(q[0]-l[0],q[1]-l[1])>=1){cur.pts.push(q);draw()}});
+  const fine=()=>{if(cur){cur=null;save()}};
+  svg.addEventListener('pointerup',fine);svg.addEventListener('pointercancel',fine)}
 function cellMis(p,m){
+  if(skOn(p))return '<div class="dw" style="display:block">'+skSvg(p,false)+'</div>';
   const pf=m==='esec'?'esec':'ril',o=p[pf],a=p.ale,pre=k=>p.prev[pf+'.'+k]!==undefined?' <span class="pre">'+fmt(p.prev[pf+'.'+k])+'</span>':'';
   let h='';
   if(o.BF!==undefined||o.BL!==undefined)h+='<div class="m">BF '+fmt(o.BF)+'&emsp;BL '+fmt(o.BL)+'</div>';
@@ -248,18 +281,20 @@ function alBtn(p,lato,label){const a=p.ale[lato]||{t:''};const cls=a.t===''?'':a
   return '<div class="f" style="min-width:110px;flex:0 0 auto">'+label+'<button class="al'+cls+'" data-al="'+lato+'">'+alS(a)+'</button>'+(conN?'<input class="mi" data-aln="'+lato+'" inputmode="decimal" placeholder="mm" value="'+esc(fmt(a.n))+'" style="margin-top:4px;font-size:16px;min-height:40px">':'')+'</div>'}
 const chip=(on,attr,txt)=>'<button class="chip'+(on?' on':'')+'" '+attr+'>'+esc(txt)+'</button>';
 function openEd(i,keep){
-  EI=i;const c=C(),p=c.pos[i],m=M(),ed=document.getElementById('ed'),sc=keep?ed.scrollTop:0;let h='';
+  EI=i;const c=C(),p=c.pos[i],m=M(),ed=document.getElementById('ed'),sc=keep?ed.scrollTop:0;let h='';const sk=(m==='ril'||m==='esec')&&skOn(p);
   h+='<div class="row"><label class="f" style="flex:0 0 110px">Posizione<input data-p="id" value="'+esc(p.id)+'"></label>'+
     '<label class="f">Stanza (accanto alla lettera)<input data-p="stanza" value="'+esc(p.stanza)+'" placeholder="Soggiorno, Bagno..."></label></div>';
   h+='<div class="chips">'+STANZE.map(s=>chip(p.stanza===s,'data-stanza="'+s+'"',s)).join('')+'</div>';
   h+='<h3>Etichetta (accanto alla stanza: persiana, vetrata...)</h3><label class="f"><input data-p="etichetta" value="'+esc(p.etichetta)+'" placeholder="Scrivi quello che vuoi"></label><div class="chips" style="margin-top:6px">'+ETICHETTE.map(s=>chip(p.etichetta===s,'data-etic="'+s+'"',s)).join('')+'</div>';
+  if(m==='ril'||m==='esec')h+='<h3>Tipo di posizione</h3><div class="chips">'+chip(!sk,'data-schm="0"','Finestra con misure')+chip(sk,'data-schm="1"','Schizzo libero (solo disegno e testo)')+'</div>';
   if(p.descrizione||p.tipo){h+='<div class="box" style="margin-top:8px"><b>Dal contratto:</b> '+esc(p.descrizione||p.tipo)+((p.complementi&&p.complementi.length)?'<br>Con: '+esc(p.complementi.join('; ')):'')+((p.verifica&&p.verifica.length)?'<br><b style="color:#b00">Da verificare:</b> '+esc(p.verifica.join('; '))+'<div class="chips" style="margin-top:6px">'+chip(p.vOk,'data-vok="1"','Verificato')+'</div>':'')+'</div>'}
   h+='<div class="row" style="margin-top:8px"><label class="f" style="flex:0 0 150px">Quantità (N°)<input data-p="qta" value="'+esc(p.qta)+'" placeholder="2 oppure 1 DX 1 SX"></label><label class="f">Sistema (in alto a sinistra)<input data-p="sistema" value="'+esc(p.sistema)+'" placeholder="S44, EVO2..."></label></div>';
   h+='<div class="chips">'+SISTEMI.map(s=>chip(p.sistema===s,'data-sis="'+s+'"',s)).join('')+'</div>';
-  h+='<h3>Senso di apertura (a destra del disegno)</h3><div class="chips">'+APERTURE.map(a=>chip(p.apertura===a[0],'data-ape="'+a[0]+'"',a[0]+' '+a[1])).join('')+'</div>';
-  h+='<h3>Disegno</h3><div class="dis">'+svgTipo(p.disegno,150,190,true)+'<div><div class="chips">'+chip(0,'data-anta="+"','+ anta')+chip(0,'data-anta="-"','- anta')+'</div><div class="hint">Tocca un\'anta per cambiarla: fisso F, anta &lt; o &gt;, scorrevole con freccia verso il centro.</div></div></div>'+
+  if(!sk)h+='<h3>Senso di apertura (a destra del disegno)</h3><div class="chips">'+APERTURE.map(a=>chip(p.apertura===a[0],'data-ape="'+a[0]+'"',a[0]+' '+a[1])).join('')+'</div>';
+  if(!sk)h+='<h3>Disegno</h3><div class="dis">'+svgTipo(p.disegno,150,190,true)+'<div><div class="chips">'+chip(0,'data-anta="+"','+ anta')+chip(0,'data-anta="-"','- anta')+'</div><div class="hint">Tocca un\'anta per cambiarla: fisso F, anta &lt; o &gt;, scorrevole con freccia verso il centro.</div></div></div>'+
     '<div class="draw">'+DISEGNI.map(d=>'<button data-dis="'+d[0]+'" class="'+(p.disegno===d[0]?'on':'')+'">'+svgTipo(d[0],56,64)+'<div>'+d[1]+'</div></button>').join('')+'</div>';
-  if(m==='ril'||m==='esec'){
+  if((m==='ril'||m==='esec')&&sk){h+=skEd(p)}
+  else if(m==='ril'||m==='esec'){
     const pf=m==='esec'?'esec':'ril';
     if(m==='esec'){const r=p.ril;h+='<h3>Dal rilievo</h3><div class="box m">BF '+fmt(r.BF)+' BL '+fmt(r.BL)+' | LST '+fmt(r.LST)+' HST '+fmt(r.HST)+' | L '+fmt(r.L)+' H '+fmt(r.H)+' | Lmax '+fmt(r.Lmax)+' Hmax '+fmt(r.Hmax)+'</div>'}
     h+='<h3>'+(m==='esec'?'Misure esecutive':'Misure rilievo')+' (mm)</h3><div class="hint">Con il Leica: tocca il campo e premi il tasto, il numero si scrive da solo. Senza Leica (metro a mano): tocca il campo e scrivi con la tastiera. Invio passa al campo dopo.</div>'+(p.nominale&&p.nominale.L?'<div class="hint">Nominale da contratto: '+fmt(p.nominale.L)+' x '+fmt(p.nominale.H)+' mm</div>':'');
@@ -287,6 +322,7 @@ function openEd(i,keep){
   document.getElementById('foot').innerHTML='<button class="del" id="eDel">Elimina</button><button id="eFoto">Foto</button><button class="pri" id="eOk">Fatto</button>';
   document.getElementById('ov').classList.add('on');
   aggFotoUi();
+  if(sk)skIni(p);
   formule();
   if(!keep&&(m==='ril'||m==='esec')){const fi=[...ed.querySelectorAll('.mi[data-p]')].find(x=>x.value==='');if(fi)try{fi.focus()}catch(e){}}
 }
@@ -687,6 +723,10 @@ document.addEventListener('click',e=>{
   }
   if(EI<0)return;const p=c.pos[EI];
   if(t.id==='eDel'){if(confirm('Eliminare la posizione '+p.id+'?')){c.pos.splice(EI,1);if(!c.pos.length)c.pos.push(nuovaPos('A'));EI=-1;document.getElementById('ov').classList.remove('on');save();render()}return}
+  if(t.dataset.schm!==undefined){if(!p.schizzo)p.schizzo={on:false,el:[]};p.schizzo.on=t.dataset.schm==='1';save();openEd(EI,true);return}
+  if(t.dataset.skt){SKT=t.dataset.skt;openEd(EI,true);return}
+  if(t.dataset.sk==='undo'){skEl(p).pop();save();openEd(EI,true);return}
+  if(t.dataset.sk==='clear'){if(confirm('Cancellare tutto lo schizzo di '+p.id+'?')){skEl(p).length=0;save();openEd(EI,true)}return}
   if(t.dataset.stanza){p.stanza=p.stanza===t.dataset.stanza?'':t.dataset.stanza;save();openEd(EI,true);return}
   if(t.dataset.vok){p.vOk=!p.vOk;save();openEd(EI,true);return}
   if(t.dataset.sis){p.sistema=p.sistema===t.dataset.sis?'':t.dataset.sis;save();openEd(EI,true);return}
